@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 
 class MultimodalDataset(Dataset, ABC):
     """
-    Classe base astratta per dataset multimodali.
+    Abstract base class for multimodal datasets.
     """
 
     def __init__(self, pickle_path, train=True):
@@ -19,17 +19,17 @@ class MultimodalDataset(Dataset, ABC):
 
     @abstractmethod
     def load_pickle(self, path):
-        """Carica le strutture dati dal file pickle."""
+        """Loads data structures from the pickle file."""
         pass
 
     @abstractmethod
     def set_split_keys(self):
-        """Imposta gli ID dei campioni di train o test."""
+        """Sets the IDs of training or testing samples."""
         pass
 
     @abstractmethod
     def __getitem__(self, index):
-        """Estrae un singolo campione dal dataset."""
+        """Retrieves a single sample from the dataset."""
         pass
 
     def __len__(self):

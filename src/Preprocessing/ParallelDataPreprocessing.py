@@ -69,7 +69,7 @@ class IEMOCAPProcessor(MultimodalDatasetProcessor):
                         if emotion not in self.label_map:
                             continue
 
-                        # Testo
+                        # Text
                         text = None
                         with open(os.path.join(trans_dir, emo_file), encoding="utf8") as tf:
                             for tline in tf:
@@ -87,10 +87,10 @@ class IEMOCAPProcessor(MultimodalDatasetProcessor):
                             videoAudio[vid] = self.extract_audio_features(wav_path)
                             idx += 1
                         except Exception as e:
-                            print(f"Errore audio {vid}: {e}")
+                            print(f"Audio error {vid}: {e}")
                             continue
 
-                        # Speaker e label
+                        # Speaker and label
                         speaker = 'M' if vid[7] == 'M' else 'F'
                         videoSpeakers[vid] = speaker
                         videoLabels[vid] = self.label_map[emotion]
@@ -118,8 +118,8 @@ class IEMOCAPProcessor(MultimodalDatasetProcessor):
             else:
                 testVid.extend(vids)
 
-        print("Numero video in train:", len(trainVid))
-        print("Numero video in test:", len(testVid))
+        print("Number of video in train:", len(trainVid))
+        print("Number of video in test:", len(testVid))
 
         self.save_features(save_path, (
             list(videoText.keys()), videoSpeakers, videoLabels, videoText,

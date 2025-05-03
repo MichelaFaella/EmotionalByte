@@ -3,13 +3,13 @@ from torch.utils.data import DataLoader
 from DataLoader import IEMOCAPDataset
 
 def main():
-    # Crea il dataset per il training
+    # Create dataset for training
     dataset = IEMOCAPDataset("../../data/iemocap_multimodal_features_par.pkl", train=True)
 
-    # Crea un DataLoader con batch_size=2 per vedere l'output chiaramente
+    # Create DataLoader with batch_size=2 to visualize the output 
     loader = DataLoader(dataset, batch_size=2, shuffle=True, collate_fn=dataset.collate_fn)
 
-    # Itera e stampa un batch
+    # Iterate and print a batch
     for batch_idx, (text, audio, speaker, mask, label, vids) in enumerate(loader):
         print(f"\n=== Batch {batch_idx} ===")
         print("Video IDs:", vids)
