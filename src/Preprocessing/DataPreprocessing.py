@@ -54,7 +54,7 @@ for session in sessions:
                         #continue
                         print(f"{emotion} not in label_map")
 
-                    # 1. Testo
+                    # 1. TEXT
                     text = None
                     with open(trans_dir + "/" + emo_file, encoding='utf8') as textfile:
                         for tline in textfile:
@@ -64,9 +64,9 @@ for session in sessions:
 
                     if text is None:
                         print(f" Testo non trovato per {vid} in {emo_file}")
-                        continue  # salta questo sample
+                        continue  # skip this sample
 
-                    # ora è sicuro tokenizzare
+                    # now it is safe to tokenize
                     inputs = tokenizer(text, return_tensors="pt")
 
                     with torch.no_grad():
@@ -74,14 +74,14 @@ for session in sessions:
                     videoText.setdefault(vid, []).append(outputs.numpy())
 
 
-                    # 2. Audio
+                    # 2. AUDIO
                     wav = os.listdir(wav_fold_path)[idx]
                     wav_path = wav_dir + "/" + wav_fold + "/" + wav
                     idx = idx + 1
 
                     try:
                         features = smile.process_file(wav_path)  # pandas DataFrame
-                        audio_feat = features.iloc[0].to_numpy()  # Vettore numpy
+                        audio_feat = features.iloc[0].to_numpy()  # numpy vector
                         videoAudio.setdefault(vid, []).append(audio_feat)
                     except Exception as e:
                         print(f"Errore nell'estrazione audio per {vid}: {e}")
@@ -96,7 +96,7 @@ for session in sessions:
                     videoLabels.setdefault(vid, []).append(label_map[emotion])
 
 
-                    # 5. Divisione in train/test
+                    # 5. Train/Test division
                     if session == "Session1":
                         trainVid.append(vid)
                     else:
@@ -106,7 +106,7 @@ print("Numero video in train:", len(trainVid))
 print("Numero video in test:", len(testVid))
 print("Esempi:", trainVid[:5])
 
-# Salvataggio finale
+# Save file pickle
 with open("iemocap_multimodal_features.pkl", "wb") as f:
     pickle.dump(
         (list(videoText.keys()), videoSpeakers, videoLabels, videoText,
