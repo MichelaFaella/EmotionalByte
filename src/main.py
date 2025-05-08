@@ -2,45 +2,78 @@ import torch
 from torch.utils.data import DataLoader
 from DataLoader import DataLoader as dl
 from Models import ModalityEncoder as me
+from DataLoader import DataLoaderNuovo as dln
+from Models import provaModel
+
+
+
+def get_IEMOCAP_loaders(batch_size, Dataset):
+    # Create dataset for training
+    if Dataset == 0:
+        dataset = dl.IEMOCAPDataset("../data/iemocap_multimodal_features_par.pkl", train=True)
+        # Create DataLoader with batch_size=2 to visualize the output
+        loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=dataset.collate_fn)
+    else:
+        dataset = dln.IEMOCAPDataset(pickle_path="../data/iemocap_dialog_level.pkl", train=True)
+        loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=dataset.collate_fn)
+
+    return loader
+
+def train_or_eval_model(model, loss_fun, dataloader, epoch, optimizer=None, train=False ):
+    #assert not train or optimizer != None
+    if train:
+        model.train()
+    else:
+        model.eval()
+
+    for data in dataloader:
+        if train:
+            optimizer.zero_grad()
+
+        text_feature, audio_feature, qmask, umask, labels, dialog_id = data
+        speaker_id = qmask
+        qmask = qmask.permute(1, 0, 2) # For transformers compatibility
+        lengths = [(umask[j] == 1).nonzero().tolist()[-1][0] + 1 for j in range(len(umask))] # Compute the real length of a sequence
+
+        t_t_transformer_out, a_a_transformer_out, t_a_transformer_out, a_t_transformer_out = model(text_feature, audio_feature, speaker_id, umask)
+        print(f"t_t_transformer_out: {t_t_transformer_out}\n a_a_transformer_out: {a_a_transformer_out} \n t_a_transformer_out: {t_a_transformer_out} \n a_t_transformer_out: {a_t_transformer_out}")
+
 
 def main():
-    # Create dataset for training
-    dataset = dl.IEMOCAPDataset("../data/iemocap_multimodal_features_par.pkl", train=True)
+    DatasetLoader = 1
 
-    # Create DataLoader with batch_size=2 to visualize the output 
-    loader = DataLoader(dataset, batch_size=32, shuffle=True, collate_fn=dataset.collate_fn)
-    """
-    # Instantiate the model
-    input_dims = {'text': 768, 'audio': 88}
-    model_dim = 128  # Puoi scegliere un valore arbitrario
-    model = me.ModalityEncoder(input_dims, model_dim)
+    loader = get_IEMOCAP_loaders(batch_size=10, Dataset=DatasetLoader)
 
-    # Set the model to eval mode (o .train() se stai testando il training)
-    model.train()
-    """
+    if DatasetLoader == 0:
+        # Take one batch and test forward pass
+        for batch_idx, (text, audio, speaker, mask, label, vids) in enumerate(loader):
+            print(f"\n=== Batch {batch_idx} ===")
+            print("Video IDs:", vids)
+            print("Text shape:", text.shape)      # (batch, seq_len_text, dim)
+            print("Audio shape:", audio.shape)    # (batch, seq_len_audio, dim)
+            print("Speaker shape:", speaker.shape)  # (batch, seq_len_speaker, 2)
+            print("Mask shape:", mask.shape)
+            print("Label shape:", label.shape)
+    else:
+        for batch in loader:
+            text, audio, qmask, umask, labels, dialog_ids = batch
 
-    # Take one batch and test forward pass
-    for batch_idx, (text, audio, speaker, mask, label, vids) in enumerate(loader):
-        print(f"\n=== Batch {batch_idx} ===")
-        print("Video IDs:", vids)
-        print("Text shape:", text.shape)      # (batch, seq_len_text, dim)
-        print("Audio shape:", audio.shape)    # (batch, seq_len_audio, dim)
-        print("Speaker shape:", speaker.shape)  # (batch, seq_len_speaker, 2)
-        print("Mask shape:", mask.shape)
-        print("Label shape:", label.shape)
+            print("Text shape:", text.shape)       # [B, T_max, D_text]
+            print("Audio shape:", audio.shape)     # [B, T_max, D_audio]
+            print("Qmask shape:", qmask.shape)     # [B, T_max, 2]
+            #print("Sperkers:", qmask)
+            print("Umask shape:", umask.shape)     # [B, T_max]
+            print("Labels shape:", labels.shape)   # [B, T_max]
+            print("Dialog IDs:", dialog_ids)
 
+        input_dim = {'text': 768, 'audio': 88, 'speaker':2}
 
-        """
-        # Forward pass
-        with torch.no_grad():
-            text_out, audio_out = model(text, audio, speaker)
+        model = provaModel.Transformer_Based_Model( dataset=loader,  input_dimension=input_dim, model_dimension=128, n_head=8, n_classes=10, dropout=0.1)
+        train_or_eval_model(model=model, loss_fun=None, dataloader=loader, epoch=1, optimizer=None, train=False)
 
-        print("Text output shape:", text_out.shape)
-        print("Audio output shape:", audio_out.shape)
-        break  # Solo il primo batch per ora
-        """
 
 
 
 if __name__ == "__main__":
     main()
+
