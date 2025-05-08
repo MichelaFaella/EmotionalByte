@@ -6,8 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
-from SpeakerEmbedding import SpeakerEmbedding
-from PositionalEncoding import PositionalEncoding
+from .SpeakerEmbedding import SpeakerEmbedding
+from .PositionalEncoding import PositionalEncoding
 
 class PositionwiseFeedForward(nn.Module):
 
@@ -68,7 +68,7 @@ class TransformerEncoder(nn.Module):
         key_padding_mask = ~mask.bool()
 
         # Application of positional and speaker embeddings
-        key_value_input = self.pos_emb(key_value_input) + self.speaker_emb(speaker_id)
+        key_value_input = self.pos_emb(key_value_input)+ self.speaker_emb(speaker_id)
         key_value_input = self.dropout(key_value_input)
 
         if not is_self_attention:
