@@ -8,7 +8,7 @@ from transformers import RobertaTokenizer, RobertaModel
 import torch
 
 root = "../../data/IEMOCAP/"
-sessions = [f"Session{i}" for i in range(1, 3)]
+sessions = [f"Session{i}" for i in range(1, 6)]
 
 
 videoTextConv = {}
