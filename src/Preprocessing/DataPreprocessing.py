@@ -34,7 +34,7 @@ model = RobertaModel.from_pretrained("roberta-base", add_pooling_layer=False)
 model.eval()
 
 smile = opensmile.Smile(
-    feature_set=opensmile.FeatureSet.eGeMAPSv01b,
+    feature_set=opensmile.FeatureSet.eGeMAPSv02,
     feature_level=opensmile.FeatureLevel.Functionals
 )
 
@@ -96,7 +96,7 @@ for session in sessions:
 
 
                     # 3. Speaker
-                    speaker = 'M' if vid.split("_")[2][0] == 'M' else 'F'
+                    speaker = [1,0] if vid.split("_")[-1][0] == 'M' else [0,1]
                     videoSpeakersConv.setdefault(vid, []).append(speaker)
 
 
@@ -118,10 +118,10 @@ for session in sessions:
 
 
             convID = emo_file.split(".")[0]
-            videoText.setdefault(convID, []).append(videoTextConv)
-            videoAudio.setdefault(convID, []).append(videoAudioConv)
-            videoSpeakers.setdefault(convID, []).append(videoSpeakersConv)
-            videoLabels.setdefault(convID, []).append(videoLabelsConv)
+            videoText.setdefault(convID, []).extend(videoTextConv.values())
+            videoAudio.setdefault(convID, []).extend(videoAudioConv.values())
+            videoSpeakers.setdefault(convID, []).extend(videoSpeakersConv.values()) #[['F'] , ['M']]
+            videoLabels.setdefault(convID, []).extend(videoLabelsConv.values())
 
             videoTextConv = {}
             videoAudioConv = {}
@@ -130,18 +130,18 @@ for session in sessions:
             videoTimeConv = {}
 
 
-    # 5. Train/Test division
-    if session != "Session5":
-        trainVid.append(convID)
-    else:
-        testVid.append(convID)
+        # 5. Train/Test division
+        if session != "Session5":
+            trainVid.append(convID)
+        else:
+            testVid.append(convID)
 
 print("#Conversation in train:", len(trainVid))
 print("#Conversation in Test:", len(testVid))
 
 
 # Save file pickle
-with open("iemocap_multimodal_features.pkl", "wb") as f:
+with open("../../data/iemocap_multimodal_features.pkl", "wb") as f:
     pickle.dump(
         (list(videoText.keys()), videoSpeakers, videoLabels, videoText,
          None, None, None, videoAudio, trainVid, testVid),

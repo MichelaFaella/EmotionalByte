@@ -55,7 +55,7 @@ class TransformerEncoder(nn.Module):
         self.dim_model = dim_model
         self.layers = layers
         self.pos_emb = PositionalEncoding(dim_model)
-        self.speaker_emb = SpeakerEmbedding(dim_speaker)
+        self.speaker_emb = SpeakerEmbedding(dim_model)
         self.transformer_layers = nn.ModuleList(
             [TransformerEncoderLayer(dim_model, heads, dim_ff, dropout)
              for _ in range(layers)]
@@ -67,12 +67,17 @@ class TransformerEncoder(nn.Module):
 
         key_padding_mask = ~mask.bool()
 
+        pos_emb = self.pos_emb(key_value_input)
+        speaker_emb = self.speaker_emb(speaker_id)
+
+
         # Application of positional and speaker embeddings
-        key_value_input = self.pos_emb(key_value_input)+ self.speaker_emb(speaker_id)
+        key_value_input = pos_emb + speaker_emb + key_value_input
+
         key_value_input = self.dropout(key_value_input)
 
         if not is_self_attention:
-            query_input = self.pos_emb(query_input) + self.speaker_emb(speaker_id)
+            query_input = self.pos_emb(query_input) + self.speaker_emb(speaker_id) + query_input
             query_input = self.dropout(query_input)
 
         # Compute attention on layers
