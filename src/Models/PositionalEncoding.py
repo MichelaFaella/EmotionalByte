@@ -18,12 +18,12 @@ class PositionalEncoding(nn.Module):
 
         # Create positional encoding matrix
         positional_encoding = torch.zeros(max_len, model_dimension)
-        postion = torch.arange(0, max_len).unsqueeze(1)
+        position = torch.arange(0, max_len).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, model_dimension, 2) * (-math.log(10000.0) / model_dimension))
 
         # Apply sine to even indices, cosine to odd indices
-        positional_encoding[:, 0::2] = torch.sin(postion * div_term)
-        positional_encoding[:, 1::2] = torch.cos(postion * div_term)
+        positional_encoding[:, 0::2] = torch.sin(position * div_term)
+        positional_encoding[:, 1::2] = torch.cos(position * div_term)
 
         # Shape: (1, max_len, model_dimension) to broadcast over batch dimension
         self.register_buffer('positional_encoding', positional_encoding.unsqueeze(0))

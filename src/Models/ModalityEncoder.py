@@ -16,7 +16,7 @@ class ModalityEncoder(nn.Module):
         :param input_dimension: dictionary with 'text' and 'audio' input dimensions
         :param model_dimension: output embedding dimension for all modalities
         """
-
+        super(ModalityEncoder, self).__init__()
         # 1D convolution to project each modality to the shared model_dimension space
         self.conv_text = nn.Conv1d(input_dimension['text'], model_dimension, kernel_size=1)
         self.conv_audio = nn.Conv1d(input_dimension['audio'], model_dimension, kernel_size=1)
