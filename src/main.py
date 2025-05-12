@@ -40,8 +40,8 @@ def train_or_eval_model(model, loss_fun, dataloader, epoch, optimizer=None, trai
 
         lengths = [(umask[j] == 1).nonzero().tolist()[-1][0] + 1 for j in range(len(umask))] # Compute the real length of a sequence
 
-        t_t_transformer_out, a_a_transformer_out, t_a_transformer_out, a_t_transformer_out = model(text_feature, audio_feature, qmask, umask)
-        print(f"t_t_transformer_out: {t_t_transformer_out}\n a_a_transformer_out: {a_a_transformer_out} \n t_a_transformer_out: {t_a_transformer_out} \n a_t_transformer_out: {a_t_transformer_out}")
+        t_log_prob, a_log_prob, all_log_prob, all_prob = model(text_feature, audio_feature, qmask, umask)
+        print(f"t_log_prob: {t_log_prob}\n a_log_prob: {a_log_prob} \n all_log_prob: {all_log_prob} \n all_prob: {all_prob}")
 
 
 def main():

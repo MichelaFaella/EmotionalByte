@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from .Transformers import TransformerEncoder
+from GatedFusion.GatedFusion import Unimodal_GatedFusion, Multimodal_GatedFusion, concat
 
 
 class Transformer_Based_Model(nn.Module):
@@ -30,9 +32,18 @@ class Transformer_Based_Model(nn.Module):
         self.t_a = TransformerEncoder(dim_model=model_dimension, heads=n_head, layers=1,  dim_ff=model_dimension, dim_speaker=input_dimension['speaker'], dropout=dropout)
         self.a_t = TransformerEncoder(dim_model=model_dimension, heads=n_head, layers=1,  dim_ff=model_dimension, dim_speaker=input_dimension['speaker'], dropout=dropout)
 
+        # Gated Fusion
+        self.concat_t_layer = nn.Linear(model_dimension * 2, model_dimension)
+        self.concat_a_layer = nn.Linear(model_dimension * 2, model_dimension)
+
         # Unimodal-level Gated Fusion
+        self.tt_gate = Unimodal_GatedFusion(model_dimension)
+        self.ta_gate = Unimodal_GatedFusion(model_dimension)
+        self.aa_gate = Unimodal_GatedFusion(model_dimension)
+        self.at_gate = Unimodal_GatedFusion(model_dimension)
 
         # Multimodal-level Gated Fusion
+        self.multimodal = Multimodal_GatedFusion(model_dimension)
 
         # Emotion Classifier
         self.t_output_layer = nn.Sequential(
@@ -71,11 +82,32 @@ class Transformer_Based_Model(nn.Module):
         a_t_transformer_out = self.a_t(query_input=audio, key_value_input=text, mask=u_mask, speaker_id=speaker_ids)
 
         # Unimodal-level Gated Fusion
+        Gt = concat(
+            self.concat_t_layer,
+            self.tt_gate(t_t_transformer_out),
+            self.ta_gate(t_a_transformer_out)
+        )
+        Ga = concat(
+            self.concat_a_layer,
+            self.aa_gate(a_a_transformer_out),
+            self.at_gate(a_t_transformer_out)
+        )
 
         # Multimodal-level Gated Fusion
-
+        multi_output = self.multimodal(Gt, Ga)
+        
         # Emotion Classifier
+        t_out = self.t_output_layer(Gt)
+        a_out = self.a_output_layer(Ga)
+
+        all_out = self.all_output_layer(multi_output)
+
+        # Softmax on all the outputs
+        t_log_prob = F.log_softmax(t_out, 2)
+        a_log_prob = F.log_softmax(a_out, 2)
+
+        all_log_prob = F.log_softmax(all_out, 2)
+        all_prob = F.softmax(all_out, 2) # Used for predictions
 
 
-
-        return t_t_transformer_out, a_a_transformer_out, t_a_transformer_out, a_t_transformer_out
+        return t_log_prob, a_log_prob, all_log_prob, all_prob
