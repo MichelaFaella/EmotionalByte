@@ -4,8 +4,8 @@ from torch.utils.data import DataLoader
 from DataLoader import DataLoader as dl
 
 from Models import provaModel
-from training.getDataset import get_IEMOCAP_loaders
-from training.Train import train_or_eval_model
+from Models.getDataset import get_IEMOCAP_loaders
+from Models.Train import train_or_eval_model
 
 def main():
     loader = get_IEMOCAP_loaders(batch_size=32)

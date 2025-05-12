@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .Transformers import TransformerEncoder
+from Transformers import TransformerEncoder
 from GatedFusion.GatedFusion import Unimodal_GatedFusion, Multimodal_GatedFusion, concat
 
 
@@ -12,13 +12,14 @@ class Transformer_Based_Model(nn.Module):
     speaker embeddings, and intra-modal transformer layers.
     """
 
-    def __init__(self, dataset,  input_dimension, model_dimension, n_head, n_classes, dropout=0.1):
+    def __init__(self, dataset, input_dimension, model_dimension, temp, n_head, n_classes, dropout=0.1):
         """
         :param input_dimension: dictionary with 'text','audio' and 'speaker' input dimensions
         :param model_dimension: output embedding dimension for all modalities
         """
         super(Transformer_Based_Model, self).__init__()
         self.n_classes = n_classes
+        self.temp = temp
 
         # 1D convolution to project each modality to the shared model_dimension space
         self.conv_text = nn.Conv1d(input_dimension['text'], model_dimension, kernel_size=1, padding=0, bias=False)
@@ -108,6 +109,12 @@ class Transformer_Based_Model(nn.Module):
 
         all_log_prob = F.log_softmax(all_out, 2)
         all_prob = F.softmax(all_out, 2) # Used for predictions
+        
+        # KL divergence
+        t_kl_log_prob = F.log_softmax(t_out /self.temp, 2)
+        a_kl_log_prob = F.log_softmax(a_out /self.temp, 2)
+
+        all_kl_prob = F.softmax(all_out /self.temp, 2)
 
 
-        return t_log_prob, a_log_prob, all_log_prob, all_prob
+        return t_log_prob, a_log_prob, all_log_prob, all_prob, t_kl_log_prob, a_kl_log_prob, all_kl_prob
