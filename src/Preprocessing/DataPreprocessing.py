@@ -148,19 +148,10 @@ print("#Conversation in train:", len(trainVid))
 print("#Conversation in Test:", len(testVid))
 
 
-if label_map == label_map_6:
-    # Save file pickle
-    with open("./data/iemocap_multimodal_features_6labels.pkl", "wb") as f:
-        pickle.dump(
-            (list(videoText.keys()), videoSpeakers, videoLabels, videoText,
-             None, None, None, videoAudio, trainVid, testVid),
-            f
-        )
-else:
-    # Save file pickle
-    with open("./data/iemocap_multimodal_features.pkl", "wb") as f:
-        pickle.dump(
-            (list(videoText.keys()), videoSpeakers, videoLabels, videoText,
-             None, None, None, videoAudio, trainVid, testVid),
-            f
-        )
+# Save file pickle
+with open("./data/iemocap_multimodal_features_6labels.pkl", "wb") as f:
+    pickle.dump(
+        (list(videoText.keys()), videoSpeakers, videoLabels, videoText,
+         None, None, None, videoAudio, trainVid, testVid),
+        f
+    )
