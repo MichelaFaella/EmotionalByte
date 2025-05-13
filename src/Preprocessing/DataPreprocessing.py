@@ -143,7 +143,7 @@ print("#Conversation in Test:", len(testVid))
 
 
 # Save file pickle
-with open("../../data/iemocap_multimodal_features_6labels.pkl", "wb") as f:
+with open("./data/iemocap_multimodal_features_6labels.pkl", "wb") as f:
     pickle.dump(
         (list(videoText.keys()), videoSpeakers, videoLabels, videoText,
          None, None, None, videoAudio, trainVid, testVid),

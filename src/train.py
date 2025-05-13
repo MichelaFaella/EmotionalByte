@@ -1,11 +1,12 @@
-import provaModel as pM
 import torch
 import torch.nn as nn
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch.optim as optim
-from getDataset import get_IEMOCAP_loaders
 from sklearn.metrics import f1_score, confusion_matrix, accuracy_score, classification_report
+
+from preprocessing.getDataset import get_IEMOCAP_loaders
+from model import Transformer_Based_Model
 
 class MaskedKLDivLoss(nn.Module):
     def __init__(self):
@@ -124,7 +125,7 @@ if __name__ == "__main__":
     tensorboard = True
     writer = SummaryWriter(logdir="runs/exp1")  
 
-    model = pM.Transformer_Based_Model(dataset=train_loader, input_dimension=input_dim, model_dimension=model_dimension, temp=temp, n_head=n_head, n_classes=n_classes, dropout=dropout)
+    model = Transformer_Based_Model(dataset=train_loader, input_dimension=input_dim, model_dimension=model_dimension, temp=temp, n_head=n_head, n_classes=n_classes, dropout=dropout)
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     loss_weight = torch.rand(11)
     loss_fun = MaskedNLLLoss(loss_weight)
