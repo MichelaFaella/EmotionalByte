@@ -1,10 +1,11 @@
-import provaModel as pM
 import torch
 import torch.nn as nn
 import numpy as np
 import torch.optim as optim
-from getDataset import get_IEMOCAP_loaders
 from sklearn.metrics import f1_score, confusion_matrix, accuracy_score, classification_report
+
+from preprocessing.getDataset import get_IEMOCAP_loaders
+from model import Transformer_Based_Model
 
 class MaskedKLDivLoss(nn.Module):
     def __init__(self):
@@ -110,13 +111,13 @@ if __name__ == "__main__":
     train_loader, val_loader, test_loader = get_IEMOCAP_loaders(batch_size=16, validRatio=0.2)
 
 
-    model = pM.Transformer_Based_Model(dataset=train_loader, input_dimension=input_dim, model_dimension=128, temp=1, n_head=8, n_classes=11, dropout=0.1)
+    model = Transformer_Based_Model(dataset=train_loader, input_dimension=input_dim, model_dimension=128, temp=1, n_head=8, n_classes=11, dropout=0.1)
     optimizer = optim.Adam(model.parameters(), lr=0.0001, weight_decay=0.00001)
     loss_weight = torch.rand(11)
     loss_fun = MaskedNLLLoss(loss_weight)
     kl_loss = MaskedKLDivLoss()
     
-    for e in range(1000):
+    for e in range(150):
         avg_loss, avg_acc, labels, preds, masks, avg_fscore = train_or_eval_model(model=model, loss_fun=loss_fun, kl_loss=kl_loss, dataloader=train_loader, epoch=1, optimizer=optimizer, train=True)
 
         print(f"Epoch: {e}\navg_loss: {avg_loss}, avg_acc: {avg_acc}, labels: {labels}, preds: {preds}, masks: {masks}, avg_fscore: {avg_fscore}")

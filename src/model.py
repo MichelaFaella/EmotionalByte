@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from Transformers import TransformerEncoder
-from GatedFusion.GatedFusion import Unimodal_GatedFusion, Multimodal_GatedFusion, concat
+from components.Transformers import TransformerEncoder
+from components.GatedFusion import Unimodal_GatedFusion, Multimodal_GatedFusion, concat
 
 
 class Transformer_Based_Model(nn.Module):

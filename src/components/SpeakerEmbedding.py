@@ -1,6 +1,5 @@
 import torch.nn as nn
 
-
 class SpeakerEmbedding(nn.Module):
     """
     Implements learnable embeddings for speakers (e.g., 'M' or 'F').

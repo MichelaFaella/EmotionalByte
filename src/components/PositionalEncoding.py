@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import math
 
-
 class PositionalEncoding(nn.Module):
     """
     Standard sinusoidal positional encoding for sequential inputs.

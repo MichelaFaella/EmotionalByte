@@ -1,7 +1,6 @@
-import provaModel as pM
 import torch
 from torch.utils.data import DataLoader, random_split
-from DataLoader import DataLoader as dl
+from dataLoader import DataLoader as dl
 
 data = "./data/iemocap_multimodal_features.pkl"
 
@@ -28,8 +27,3 @@ def get_IEMOCAP_loaders(batch_size, validRatio):
     test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=True, collate_fn=dataset.collate_fn)
 
     return tr_loader, val_loader, test_loader
-
-
-
-
-

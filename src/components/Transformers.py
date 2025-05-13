@@ -6,8 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
-from SpeakerEmbedding import SpeakerEmbedding
-from PositionalEncoding import PositionalEncoding
+from components.SpeakerEmbedding import SpeakerEmbedding
+from components.PositionalEncoding import PositionalEncoding
 
 class PositionwiseFeedForward(nn.Module):
 

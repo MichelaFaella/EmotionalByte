@@ -1,3 +1,14 @@
+# IDE specific files
+.idea
+
+# Byte compiled/Cached files
 **/__pycache__/
-venv
+*.py[cod]
+
+# Virtual environments
+venv/
+**/venv
+
+# MacOS specific files
+.DS_Store
 **/.DS_Store
