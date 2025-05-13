@@ -116,6 +116,7 @@ if __name__ == "__main__":
     loss_fun = MaskedNLLLoss(loss_weight)
     kl_loss = MaskedKLDivLoss()
     
-    avg_loss, avg_acc, labels, preds, masks, avg_fscore = train_or_eval_model(model=model, loss_fun=loss_fun, kl_loss=kl_loss, dataloader=train_loader, epoch=1, optimizer=optimizer, train=True)
+    for e in range(1000):
+        avg_loss, avg_acc, labels, preds, masks, avg_fscore = train_or_eval_model(model=model, loss_fun=loss_fun, kl_loss=kl_loss, dataloader=train_loader, epoch=1, optimizer=optimizer, train=True)
 
-    print(f"avg_loss: {avg_loss}, avg_acc: {avg_acc}, labels: {labels}, preds: {preds}, masks: {masks}, avg_fscore: {avg_fscore}")
+        print(f"Epoch: {e}\navg_loss: {avg_loss}, avg_acc: {avg_acc}, labels: {labels}, preds: {preds}, masks: {masks}, avg_fscore: {avg_fscore}")
