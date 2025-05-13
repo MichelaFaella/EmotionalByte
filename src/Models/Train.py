@@ -2,6 +2,7 @@ import provaModel as pM
 import torch
 import torch.nn as nn
 import numpy as np
+from tensorboardX import SummaryWriter
 import torch.optim as optim
 from getDataset import get_IEMOCAP_loaders
 from sklearn.metrics import f1_score, confusion_matrix, accuracy_score, classification_report
@@ -87,8 +88,10 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
         if train:
             loss.backward()
             # tensorboard
-            #for param in model.named_parameters():
-                #writer.add_histogram(param[0], param[1].grad, epoch)
+            for name, param in model.named_parameters():
+                if param.grad is not None:
+                    print(param.grad)
+                    writer.add_histogram(name, param.grad, epoch)
             optimizer.step()
         
         if preds != []:
@@ -100,7 +103,7 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
         
         avg_loss = round(np.sum(losses) / np.sum(masks), 4)
         avg_acc = round(accuracy_score(labels, preds, sample_weight=masks)*100, 2)   
-        avg_fscore = round(f1_score(labels,preds, sample_weight=masks, average='weighted')*100, 2)  
+        avg_fscore = round(f1_score(labels,preds, sample_weight=masks, average='weighted', zero_division=0) * 100, 2)  
     
         return avg_loss, avg_acc, labels, preds, masks, avg_fscore     
 
@@ -109,14 +112,39 @@ if __name__ == "__main__":
     input_dim = {'text': 768, 'audio': 88, 'speaker':2}
     train_loader, val_loader, test_loader = get_IEMOCAP_loaders(batch_size=16, validRatio=0.2)
 
+    n_epochs = 15
+    model_dimension = 128
+    temp = 1
+    n_head=8
+    n_classes=11
+    dropout=0.5
+    lr = 0.0001
+    weight_decay = 0.00001
 
-    model = pM.Transformer_Based_Model(dataset=train_loader, input_dimension=input_dim, model_dimension=128, temp=1, n_head=8, n_classes=11, dropout=0.1)
-    optimizer = optim.Adam(model.parameters(), lr=0.0001, weight_decay=0.00001)
+    tensorboard = True
+    writer = SummaryWriter(logdir="runs/exp1")  
+
+    model = pM.Transformer_Based_Model(dataset=train_loader, input_dimension=input_dim, model_dimension=model_dimension, temp=temp, n_head=n_head, n_classes=n_classes, dropout=dropout)
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     loss_weight = torch.rand(11)
     loss_fun = MaskedNLLLoss(loss_weight)
     kl_loss = MaskedKLDivLoss()
     
-    for e in range(1000):
-        avg_loss, avg_acc, labels, preds, masks, avg_fscore = train_or_eval_model(model=model, loss_fun=loss_fun, kl_loss=kl_loss, dataloader=train_loader, epoch=1, optimizer=optimizer, train=True)
+    for e in range(n_epochs):
+        train_loss, train_acc, train_labels, train_preds, train_masks, train_fscore = train_or_eval_model(model=model, loss_fun=loss_fun, kl_loss=kl_loss, dataloader=train_loader, epoch=e, optimizer=optimizer, train=True)
+        val_loss, val_acc, _, _, _, val_fscore = train_or_eval_model(model, loss_fun, kl_loss, val_loader, e)
+        test_loss, test_acc, test_labels, test_preds, test_masks, test_fscore = train_or_eval_model(model, loss_fun, kl_loss, test_loader, e)
 
-        print(f"Epoch: {e}\navg_loss: {avg_loss}, avg_acc: {avg_acc}, labels: {labels}, preds: {preds}, masks: {masks}, avg_fscore: {avg_fscore}")
+        if tensorboard:      
+            print("Logging loss to TensorBoard at epoch", e)
+            writer.add_scalar('test: accuracy', test_acc, e)
+            writer.add_scalar('test: fscore', test_fscore, e)
+            writer.add_scalar('train: accuracy', train_acc, e)
+            writer.add_scalar('train: fscore', train_fscore, e)
+
+        print(f"Epoch: {e}\n train_loss: {train_loss}, train_acc: {train_acc}, labels: {train_labels}, preds: {train_preds}, masks: {train_masks}, train_fscore: {train_fscore}")
+        print(f"Epoch: {e}\n val_loss: {val_loss}, train_acc: {train_acc}, train_fscore: {train_fscore}")
+        print(f"Epoch: {e}\n test_loss: {test_loss}, test_acc: {train_acc}, test_labels: {test_labels}, test_preds: {test_preds}, test_masks: {test_masks}, train_fscore: {train_fscore}")
+
+    if tensorboard:    
+        writer.close()
