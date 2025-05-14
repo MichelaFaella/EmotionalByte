@@ -26,8 +26,13 @@ videoLabels = {}
 trainVid, testVid = [], []
 
 # happy, sad, angry, neutral, frustrated, excited, surprised, fearful, disgusted, indefinite, other
-label_map = {'hap': 0, 'sad': 1, 'ang': 2, 'neu': 3, 'fru':4, 'exc':0,
+label_map_10 = {'hap': 0, 'sad': 1, 'ang': 2, 'neu': 3, 'fru':4, 'exc':5,
+             'sur':6, 'fea':7, 'dis':8,'xxx':9, 'oth':10}
+
+label_map_6 = {'hap': 0, 'sad': 1, 'ang': 2, 'neu': 3, 'fru':4, 'exc':0,
              'sur':5, 'fea':5, 'dis':5,'xxx':5, 'oth':5}
+
+label_map = label_map_6
 
 tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
 model = RobertaModel.from_pretrained("roberta-base", add_pooling_layer=False)
@@ -142,10 +147,19 @@ print("#Conversation in train:", len(trainVid))
 print("#Conversation in Test:", len(testVid))
 
 
-# Save file pickle
-with open("./data/iemocap_multimodal_features_6labels.pkl", "wb") as f:
-    pickle.dump(
-        (list(videoText.keys()), videoSpeakers, videoLabels, videoText,
-         None, None, None, videoAudio, trainVid, testVid),
-        f
-    )
+if label_map == label_map_6:
+    # Save file pickle
+    with open("./data/iemocap_multimodal_features_6labels.pkl", "wb") as f:
+        pickle.dump(
+            (list(videoText.keys()), videoSpeakers, videoLabels, videoText,
+             None, None, None, videoAudio, trainVid, testVid),
+            f
+        )
+else:
+    # Save file pickle
+    with open("./data/iemocap_multimodal_features.pkl", "wb") as f:
+        pickle.dump(
+            (list(videoText.keys()), videoSpeakers, videoLabels, videoText,
+             None, None, None, videoAudio, trainVid, testVid),
+            f
+        )
