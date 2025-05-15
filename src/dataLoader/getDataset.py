@@ -48,14 +48,9 @@ def lossWeights():
             else:
                 label_counter.update([label])
 
-    # Show the results
-    print("Label counts:", dict(label_counter))
-
     # Optionally compute normalized class weights
     total = sum(label_counter.values())
-    print("total: ", total)
     loss_weights = torch.FloatTensor([1.0 / (label_counter[i] / total) for i in range(6)])
-    print("Loss weights:", loss_weights)
 
     return loss_weights
 

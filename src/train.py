@@ -3,35 +3,37 @@ import torch.nn as nn
 import numpy as np
 from tensorboardX import SummaryWriter
 import torch.optim as optim
+import torch.nn.functional as F
 from sklearn.metrics import f1_score, accuracy_score
 
 from dataLoader.getDataset import get_IEMOCAP_loaders, lossWeights
 from model import Transformer_Based_Model
+from lossPlot import plotLoss
 
 class MaskedKLDivLoss(nn.Module):
-    def __init__(self):
+    def __init__(self, tau=1.0):
         super(MaskedKLDivLoss, self).__init__()
-        self.loss = nn.KLDivLoss(reduction='sum')
+        self.tau = tau
 
-    def forward(self, log_pred, target, mask):
-        mask_ = mask.contiguous().view(-1, 1)
-        loss = self.loss(log_pred * mask_, target * mask_) / torch.sum(mask)   
-        return loss
+    def forward(self, student_logits, teacher_logits, mask):
+        mask = mask.contiguous().view(-1, 1).float()
+        teacher_soft = F.softmax(teacher_logits / self.tau, dim=-1)
+        student_log_soft = F.log_softmax(student_logits / self.tau, dim=-1)
+        kl = F.kl_div(student_log_soft, teacher_soft, reduction='none').sum(dim=1)
+        loss = (kl * mask.squeeze()).sum() / mask.sum()
+        return loss * (self.tau ** 2)
 
 class MaskedNLLLoss(nn.Module):
     def __init__(self, weight=None):
         super(MaskedNLLLoss, self).__init__()
         self.weight = weight
-        self.loss = nn.NLLLoss(weight=weight, reduction='sum')
 
-    def forward(self, pred, target, mask):
-        mask_ = mask.contiguous().view(-1, 1)
-        if type(self.weight) == type(None):
-            loss = self.loss(pred * mask_, target) / torch.sum(mask)
-        else:
-            loss = self.loss(pred * mask_, target) \
-                   / torch.sum(self.weight[target] * mask_.squeeze())  
+    def forward(self, log_probs, target, mask):
+        mask = mask.contiguous().view(-1).float()
+        nll = F.nll_loss(log_probs, target, weight=self.weight, reduction='none')
+        loss = (nll * mask).sum() / mask.sum()
         return loss
+
 
 def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=None, train=False, gamma_1=1.0, gamma_2=1.0, gamma_3=1.0):
     preds, losses, labels, masks = [], [], [], []
@@ -67,9 +69,13 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
         a_kl_lp = a_kl_log_prob.view(-1, a_kl_log_prob.size()[2])
         all_kl_p = all_kl_prob.view(-1, all_kl_prob.size()[2])
 
-        loss = gamma_1 * loss_fun(all_lp, labels_, umask) 
-        + gamma_2 * (loss_fun(t_lp, labels_, umask) + loss_fun(a_lp, labels_, umask))
-        + gamma_3 * (kl_loss(t_kl_lp, all_kl_p, umask) + kl_loss(a_kl_lp, all_kl_p, umask))
+        loss_task = loss_fun(all_lp, labels_, umask) 
+        loss_ce_t = loss_fun(t_lp, labels_, umask)
+        loss_ce_a = loss_fun(a_lp, labels_, umask)
+        loss_kl_t = kl_loss(t_kl_lp, all_kl_p, umask)
+        loss_kl_a = kl_loss(a_kl_lp, all_kl_p, umask)
+
+        loss = gamma_1 * loss_task + gamma_2 * (loss_ce_t + loss_ce_a) + gamma_3 * (loss_kl_t + loss_kl_a)
 
         lp_ = all_prob.view(-1, all_prob.size()[2])
 
@@ -99,7 +105,7 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
         avg_acc = round(accuracy_score(labels, preds, sample_weight=masks)*100, 2)   
         avg_fscore = round(f1_score(labels,preds, sample_weight=masks, average='weighted', zero_division=0) * 100, 2)  
     
-        return avg_loss, avg_acc, labels, preds, masks, avg_fscore     
+        return avg_loss, avg_acc, labels, preds, masks, avg_fscore, loss_task, loss_ce_t, loss_ce_a, loss_kl_t, loss_kl_a, loss   
 
 if __name__ == "__main__":
 
@@ -108,12 +114,12 @@ if __name__ == "__main__":
     input_dim = {'text': 768, 'audio': 88, 'speaker':2}
     train_loader, val_loader, test_loader = get_IEMOCAP_loaders(batch_size=16, validRatio=0.2)
 
-    n_epochs = 100
+    n_epochs = 3
     model_dimension = 1024
+    n_head = 8
+    n_classes = 6
     temp = 1
-    n_head=8
-    n_classes=6
-    dropout=0.5
+    dropout = 0.5
     lr = 0.0001
     weight_decay = 0.00001
 
@@ -125,21 +131,33 @@ if __name__ == "__main__":
     loss_weight = lossWeights()
     loss_fun = MaskedNLLLoss(loss_weight)
     kl_loss = MaskedKLDivLoss()
+
+    logs = {
+            'loss_task': [],
+            'loss_ce_t': [],
+            'loss_ce_a': [],
+            'loss_kl_t': [],
+            'loss_kl_a': [],
+            'loss': []
+        }
     
     for e in range(n_epochs):
-        train_loss, train_acc, train_labels, train_preds, train_masks, train_fscore = train_or_eval_model(model=model, loss_fun=loss_fun, kl_loss=kl_loss, dataloader=train_loader, epoch=e, optimizer=optimizer, train=True)
-        val_loss, val_acc, _, _, _, val_fscore = train_or_eval_model(model, loss_fun, kl_loss, val_loader, e)
-        test_loss, test_acc, test_labels, test_preds, test_masks, test_fscore = train_or_eval_model(model, loss_fun, kl_loss, test_loader, e)
+        train_loss, train_acc, train_labels, train_preds, train_masks, train_fscore, loss_task, loss_ce_t, loss_ce_a, loss_kl_t, loss_kl_a, loss  = train_or_eval_model(model=model, loss_fun=loss_fun, kl_loss=kl_loss, dataloader=train_loader, epoch=e, optimizer=optimizer, train=True)
 
         if tensorboard:      
-            writer.add_scalar('test: accuracy', test_acc, e)
-            writer.add_scalar('test: fscore', test_fscore, e)
             writer.add_scalar('train: accuracy', train_acc, e)
             writer.add_scalar('train: fscore', train_fscore, e)
 
         print(f"Epoch: {e}\n train_loss: {train_loss}, train_acc: {train_acc}, labels: {train_labels}, preds: {train_preds}, masks: {train_masks}, train_fscore: {train_fscore}")
-        print(f"Epoch: {e}\n val_loss: {val_loss}, val_acc: {val_acc}, val_fscore: {val_fscore}")
-        print(f"Epoch: {e}\n test_loss: {test_loss}, test_acc: {test_acc}, test_labels: {test_labels}, test_preds: {test_preds}, test_masks: {test_masks}, test_fscore: {test_fscore}")
+        
+        logs['loss_task'].append(loss_task.detach())
+        logs['loss_ce_t'].append(loss_ce_t.detach())
+        logs['loss_ce_a'].append(loss_ce_a.detach())
+        logs['loss_kl_t'].append(loss_kl_t.detach())
+        logs['loss_kl_a'].append(loss_kl_a.detach())
+        logs['loss'].append(loss.detach())
+
+    plotLoss(logs, n_epochs)
 
     if tensorboard:    
         writer.close()
