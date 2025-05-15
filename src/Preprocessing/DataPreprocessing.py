@@ -39,7 +39,8 @@ model = RobertaModel.from_pretrained("roberta-base", add_pooling_layer=False)
 model.eval()
 
 smile = opensmile.Smile(
-    feature_set=opensmile.FeatureSet.eGeMAPSv02,
+    #feature_set=opensmile.FeatureSet.eGeMAPSv02,
+    feature_set=opensmile.FeatureSet.IS10_paraling,
     feature_level=opensmile.FeatureLevel.Functionals
 )
 

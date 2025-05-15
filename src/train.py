@@ -5,7 +5,7 @@ from tensorboardX import SummaryWriter
 import torch.optim as optim
 from sklearn.metrics import f1_score, accuracy_score
 
-from src.dataLoader.getDataset import get_IEMOCAP_loaders
+from dataLoader.getDataset import get_IEMOCAP_loaders, lossWeights
 from model import Transformer_Based_Model
 
 class MaskedKLDivLoss(nn.Module):
@@ -27,10 +27,8 @@ class MaskedNLLLoss(nn.Module):
     def forward(self, pred, target, mask):
         mask_ = mask.contiguous().view(-1, 1)
         if type(self.weight) == type(None):
-            print(np.shape(pred * mask_))
             loss = self.loss(pred * mask_, target) / torch.sum(mask)
         else:
-            print(np.shape(pred * mask_))
             loss = self.loss(pred * mask_, target) \
                    / torch.sum(self.weight[target] * mask_.squeeze())  
         return loss
@@ -48,8 +46,6 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
             optimizer.zero_grad()
 
         text_feature, audio_feature, qmask, umask, label, vid = data
-
-        print(f"Unique labels: {torch.unique(label)}")
 
         text_feature = text_feature.permute(0, 1, 3, 2).squeeze(-1)  # (seq_len_text, batch, dim)
         audio_feature = audio_feature.permute(0, 1, 3, 2).squeeze(-1)  # (seq_len_audio, batch, dim)
@@ -71,8 +67,6 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
         a_kl_lp = a_kl_log_prob.view(-1, a_kl_log_prob.size()[2])
         all_kl_p = all_kl_prob.view(-1, all_kl_prob.size()[2])
 
-        print(f"Unique labels: {torch.unique(labels_)}")
-
         loss = gamma_1 * loss_fun(all_lp, labels_, umask) 
         + gamma_2 * (loss_fun(t_lp, labels_, umask) + loss_fun(a_lp, labels_, umask))
         + gamma_3 * (kl_loss(t_kl_lp, all_kl_p, umask) + kl_loss(a_kl_lp, all_kl_p, umask))
@@ -91,7 +85,6 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
             # tensorboard
             for name, param in model.named_parameters():
                 if param.grad is not None:
-                    print(param.grad)
                     writer.add_histogram(name, param.grad, epoch)
             optimizer.step()
         
@@ -110,14 +103,16 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
 
 if __name__ == "__main__":
 
+    torch.manual_seed(42)
+
     input_dim = {'text': 768, 'audio': 88, 'speaker':2}
     train_loader, val_loader, test_loader = get_IEMOCAP_loaders(batch_size=16, validRatio=0.2)
 
-    n_epochs = 15
-    model_dimension = 128
+    n_epochs = 100
+    model_dimension = 1024
     temp = 1
     n_head=8
-    n_classes=11
+    n_classes=6
     dropout=0.5
     lr = 0.0001
     weight_decay = 0.00001
@@ -127,7 +122,7 @@ if __name__ == "__main__":
 
     model = Transformer_Based_Model(dataset=train_loader, input_dimension=input_dim, model_dimension=model_dimension, temp=temp, n_head=n_head, n_classes=n_classes, dropout=dropout)
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-    loss_weight = torch.rand(11)
+    loss_weight = lossWeights()
     loss_fun = MaskedNLLLoss(loss_weight)
     kl_loss = MaskedKLDivLoss()
     
@@ -137,15 +132,14 @@ if __name__ == "__main__":
         test_loss, test_acc, test_labels, test_preds, test_masks, test_fscore = train_or_eval_model(model, loss_fun, kl_loss, test_loader, e)
 
         if tensorboard:      
-            print("Logging loss to TensorBoard at epoch", e)
             writer.add_scalar('test: accuracy', test_acc, e)
             writer.add_scalar('test: fscore', test_fscore, e)
             writer.add_scalar('train: accuracy', train_acc, e)
             writer.add_scalar('train: fscore', train_fscore, e)
 
         print(f"Epoch: {e}\n train_loss: {train_loss}, train_acc: {train_acc}, labels: {train_labels}, preds: {train_preds}, masks: {train_masks}, train_fscore: {train_fscore}")
-        print(f"Epoch: {e}\n val_loss: {val_loss}, train_acc: {train_acc}, train_fscore: {train_fscore}")
-        print(f"Epoch: {e}\n test_loss: {test_loss}, test_acc: {train_acc}, test_labels: {test_labels}, test_preds: {test_preds}, test_masks: {test_masks}, train_fscore: {train_fscore}")
+        print(f"Epoch: {e}\n val_loss: {val_loss}, val_acc: {val_acc}, val_fscore: {val_fscore}")
+        print(f"Epoch: {e}\n test_loss: {test_loss}, test_acc: {test_acc}, test_labels: {test_labels}, test_preds: {test_preds}, test_masks: {test_masks}, test_fscore: {test_fscore}")
 
     if tensorboard:    
         writer.close()

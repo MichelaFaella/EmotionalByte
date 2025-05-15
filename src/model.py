@@ -116,5 +116,4 @@ class Transformer_Based_Model(nn.Module):
 
         all_kl_prob = F.softmax(all_out /self.temp, 2)
 
-
         return t_log_prob, a_log_prob, all_log_prob, all_prob, t_kl_log_prob, a_kl_log_prob, all_kl_prob
