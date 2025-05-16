@@ -51,10 +51,13 @@ class MaskedNLLLoss(nn.Module):
 <<<<<<< HEAD
 
 def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=None, train=False, writer = None, gamma_1=1.0, gamma_2=1.0, gamma_3=1.0):
+<<<<<<< HEAD
 =======
 def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=None,
                         train=False, gamma_1=1.0, gamma_2=1.0, gamma_3=1.0):
 >>>>>>> 4be672c (New losses)
+=======
+>>>>>>> 1cae55d (Grid search and model selection)
     preds, losses, labels, masks = [], [], [], []
 
     model.train() if train else model.eval()
@@ -71,6 +74,10 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
         qmask = qmask.permute(0, 1, 3, 2)[:, :, 0, 0]
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+
+>>>>>>> 1cae55d (Grid search and model selection)
         text_feature = text_feature.permute(0, 1, 3, 2).squeeze(-1)  # (seq_len_text, batch, dim)
         audio_feature = audio_feature.permute(0, 1, 3, 2).squeeze(-1)  # (seq_len_audio, batch, dim)
         label = label.squeeze(-1)  # (batch, seq_len)
@@ -136,20 +143,24 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
                     writer.add_histogram(name, param.grad, epoch)
             optimizer.step()
         
-        if preds != []:
-            preds = np.concatenate(preds)
-            labels = np.concatenate(labels)
-            masks = np.concatenate(masks)
-        else:
-            return float('nan'), float('nan'), [], [], [], float('nan')
-        
-        avg_loss = round(np.sum(losses) / np.sum(masks), 4)
-        avg_acc = round(accuracy_score(labels, preds, sample_weight=masks)*100, 2)   
-        avg_fscore = round(f1_score(labels,preds, sample_weight=masks, average='weighted', zero_division=0) * 100, 2)  
-    
-        return avg_loss, avg_acc, labels, preds, masks, avg_fscore, loss_task, loss_ce_t, loss_ce_a, loss_kl_t, loss_kl_a, loss   
+    if preds != []:
+        preds = np.concatenate(preds)
+        labels = np.concatenate(labels)
+        masks = np.concatenate(masks)
+    else:
+        return float('nan'), float('nan'), [], [], [], float('nan')
+
+<<<<<<< HEAD
+
+=======
+    avg_loss = round(np.sum(losses) / np.sum(masks), 4)
+    avg_acc = round(accuracy_score(labels, preds, sample_weight=masks)*100, 2)
+    avg_fscore = round(f1_score(labels,preds, sample_weight=masks, average='weighted', zero_division=0) * 100, 2)
+
+    return avg_loss, avg_acc, labels, preds, masks, avg_fscore, loss_task, loss_ce_t, loss_ce_a, loss_kl_t, loss_kl_a, loss
 
 
+>>>>>>> 1cae55d (Grid search and model selection)
 def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", return_val_score=False, **kwargs):
     torch.manual_seed(42)
 
@@ -166,8 +177,13 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
     weight_decay = kwargs.get("weight_decay", 0.00001)
 
     tensorboard = kwargs.get("tensorboard", True)
+<<<<<<< HEAD
     if run_name != None:
         writer = SummaryWriter(log_dir=f"runs/{run_name}") if tensorboard else None
+=======
+
+    writer = SummaryWriter(log_dir=f"runs/{run_name}") if tensorboard else None
+>>>>>>> 1cae55d (Grid search and model selection)
 
     model = Transformer_Based_Model(
         dataset=train_loader,
@@ -215,7 +231,11 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
             writer.add_scalar('val: accuracy', val_acc, e)
             writer.add_scalar('val: fscore', val_fscore, e)
 
+<<<<<<< HEAD
         print(f"Epoch: {e}")
+=======
+        print(f"Epoch: {e}/{n_epochs}")
+>>>>>>> 1cae55d (Grid search and model selection)
         print(f"Train -> loss: {train_loss}, acc: {train_acc}, fscore: {train_fscore}")
         print(f"Val   -> loss: {val_loss}, acc: {val_acc}, fscore: {val_fscore}")
 
@@ -261,7 +281,11 @@ def grid_search(param_grid, fixed_params=None):
         run_name = "grid_" + "_".join([f"{k}{v}" for k, v in config.items()])
         print(f"\n🔍 Running config {i+1}/{num_config}: {config}")
 
+<<<<<<< HEAD
         score = TrainSDT(**full_config, run_name=None, return_val_score=True)
+=======
+        score = TrainSDT(**full_config, run_name=run_name, return_val_score=True)
+>>>>>>> 1cae55d (Grid search and model selection)
         print(f"Validation F1-score: {score}")
 
         all_results.append((config, score))
@@ -275,6 +299,7 @@ def grid_search(param_grid, fixed_params=None):
     return best_config, best_score, all_results
 
 
+<<<<<<< HEAD
 =======
             optimizer.step()
 
@@ -319,3 +344,5 @@ if __name__ == "__main__":
         )
         print(f"[Epoch {e}] Loss: {avg_loss} | Acc: {avg_acc}% | F1: {avg_fscore}%")
 >>>>>>> 4be672c (New losses)
+=======
+>>>>>>> 1cae55d (Grid search and model selection)

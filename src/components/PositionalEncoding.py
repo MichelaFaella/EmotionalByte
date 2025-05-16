@@ -27,10 +27,11 @@ class PositionalEncoding(nn.Module):
         # Shape: (1, max_len, model_dimension) to broadcast over batch dimension
         self.register_buffer('positional_encoding', positional_encoding.unsqueeze(0))
 
-    def forward(self, x):
+    def forward(self, x, mask):
         """
         :param x: input tensor
         :return: input tensor with positional encoding added
         """
+        x = x.masked_fill(mask.unsqueeze(-1) == 0, 0)
 
         return x + self.positional_encoding[:, :x.size(1)]
