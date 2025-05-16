@@ -1,9 +1,9 @@
 import torch
 from torch.utils.data import DataLoader, random_split
-from dataLoader import DataLoader as dl
+from src.dataLoader import DataLoader as dl
 from collections import Counter
 
-data = "data/iemocap_multimodal_features_6labels.pkl"
+data = "../data/iemocap_multimodal_features_6labels.pkl"
 
 def splitDataset(ds, vaildRatio):
     
