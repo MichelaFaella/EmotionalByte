@@ -1,9 +1,9 @@
 import torch
 from torch.utils.data import DataLoader, random_split
-from dataLoader import DataLoader as dl
+from src.dataLoader import DataLoader as dl
 from collections import Counter
 
-data = "data/iemocap_multimodal_features_6labels.pkl"
+data = "../data/iemocap_multimodal_features_6labels.pkl"
 
 def splitDataset(ds, vaildRatio):
     
@@ -18,11 +18,10 @@ def get_IEMOCAP_loaders(batch_size, validRatio):
     # Create dataset for training
     dataset, test_set = getIEMOCAP()
     train_set, val_set = splitDataset(dataset, validRatio)
-    
-    # Create DataLoader with batch_size=2 to visualize the output
+
     tr_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, collate_fn=dataset.collate_fn)
-    val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, collate_fn=dataset.collate_fn)
-    test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=True, collate_fn=dataset.collate_fn)
+    val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, collate_fn=dataset.collate_fn)
+    test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, collate_fn=dataset.collate_fn)
 
     return tr_loader, val_loader, test_loader
 
