@@ -1,6 +1,5 @@
-from train import grid_search, TrainSDT
-
-
+from src.Train.Train import TrainSDT
+from src.Train.Gridsearch import grid_search
 
 
 if __name__ == '__main__':
@@ -18,9 +17,13 @@ if __name__ == '__main__':
 
         fixed_params = {
             "n_epochs": 200,
+            "model_dimension": 32,
+            "n-head": 8,
             "tensorboard": True,
-            "lr": 0.0001,
-            "dropout": 0.5
+            "lr": 0.0005,
+            "dropout": 0.5,
+            "weight_decay": 0.0001,
+            "batch_size": 16
         }
 
 
@@ -33,18 +36,19 @@ if __name__ == '__main__':
         best_config = {
             "temp": 1.0,
             "gamma_1": 1,
-            "gamma_2": 1,
-            "gamma_3": 1
+            "gamma_2": 0.5,
+            "gamma_3": 0.5
         }
 
         fixed_params = {
-            "n_epochs": 50,
+            "n_epochs": 2,
+            "model_dimension": 32,
+            "n-head": 8,
             "tensorboard": True,
-            "lr": 0.0001,
-            "dropout": 0.5
+            "lr": 1e-3,
+            "dropout": 0.0,
+            "weight_decay": 0.03,
+            "batch_size": 16
         }
 
-        TrainSDT(**best_config, **fixed_params, run_name="best_model_train", return_val_score=False)
-
-    print("\nTesting best model on test set...")
     TrainSDT(**best_config, **fixed_params, run_name="best_model_test", return_val_score=False)

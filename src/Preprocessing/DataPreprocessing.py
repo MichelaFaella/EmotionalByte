@@ -1,15 +1,12 @@
 import os
 import pickle
-
-import opensmile
-from transformers import RobertaTokenizer, RobertaModel
-
-
 import torch
+import opensmile
+from transformers import RobertaTokenizer, RobertaForSequenceClassification, RobertaModel
 
-root = "./data/IEMOCAP/"
+root = "../../data/IEMOCAP/"
 sessions = [f"Session{i}" for i in range(1, 6)]
-
+r_tuned = False
 
 videoTextConv = {}
 videoAudioConv = {}
@@ -22,7 +19,6 @@ videoAudio = {}
 videoSpeakers = {}
 videoLabels = {}
 
-
 trainVid, testVid = [], []
 
 # happy, sad, angry, neutral, frustrated, excited, surprised, fearful, disgusted, indefinite, other
@@ -32,15 +28,31 @@ label_map_10 = {'hap': 0, 'sad': 1, 'ang': 2, 'neu': 3, 'fru':4, 'exc':5,
 label_map_6 = {'hap': 0, 'sad': 1, 'ang': 2, 'neu': 3, 'fru':4, 'exc':0,
              'sur':5, 'fea':5, 'dis':5,'xxx':5, 'oth':5}
 
-label_map = label_map_6
 
-tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
-model = RobertaModel.from_pretrained("roberta-base", add_pooling_layer=False)
+label_map = label_map_6
+configuration_label = "6_labels"
+
+if r_tuned:
+    model = RobertaForSequenceClassification.from_pretrained("../roBERTa_finetuning/roberta-iemocap/final-model")
+    tokenizer = RobertaTokenizer.from_pretrained("../roBERTa_finetuning/roberta-iemocap/final-model")
+    roberta ="roberta-fine-tuned"
+else:
+    tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
+    model = RobertaModel.from_pretrained("roberta-base", add_pooling_layer=False)
+    roberta = "roberta-base"
+
 model.eval()
 
+feature_sets = {
+    "ComParE_2016": opensmile.FeatureSet.ComParE_2016,
+    "emobase": opensmile.FeatureSet.emobase,
+    "eGeMAPSv02" : opensmile.FeatureSet.eGeMAPSv02
+}
+
+OpenSmileChosen = "emobase"
+
 smile = opensmile.Smile(
-    #feature_set=opensmile.FeatureSet.eGeMAPSv02,
-    feature_set=opensmile.FeatureSet.IS10_paraling,
+    feature_set=feature_sets[OpenSmileChosen],
     feature_level=opensmile.FeatureLevel.Functionals
 )
 
@@ -81,14 +93,18 @@ for session in sessions:
                         print(f" Testo non trovato per {vid} in {emo_file}")
                         continue  # skip this sample
 
-                    # now it is safe to tokenize
                     inputs = tokenizer(text, return_tensors="pt")
-
-                    with torch.no_grad():
-                        outputs = model(**inputs).last_hidden_state.mean(dim=1).squeeze(0)
-                    videoTextConv.setdefault(vid, []).append(outputs.numpy())
-
-
+                    if r_tuned:
+                        with torch.no_grad():                            
+                            outputs = model(**inputs, output_hidden_states=True)
+                            last_hidden = outputs.hidden_states[-1]          # shape: (1, seq_len, dim)
+                            cls_vec = last_hidden[:, 0, :].squeeze(0)        # CLS token
+                        videoTextConv.setdefault(vid, []).append(cls_vec.numpy())
+                    else:    
+                        with torch.no_grad():   
+                            outputs = model(**inputs).last_hidden_state.mean(dim=1).squeeze(0)
+                        videoTextConv.setdefault(vid, []).append(outputs.numpy())                     
+                    
                     # 2. AUDIO
                     wav = os.listdir(wav_fold_path)[idx]
                     print(f'WAV: {wav}')
@@ -116,7 +132,6 @@ for session in sessions:
                     time = float(time)
                     videoTimeConv.setdefault(vid, []).append(time)
 
-
             sortedKey = sorted(videoTimeConv, key=videoTimeConv.get)
 
             videoTextConv = {k: videoTextConv[k] for k in sortedKey}
@@ -137,7 +152,6 @@ for session in sessions:
             videoLabelsConv = {}
             videoTimeConv = {}
 
-
         # 5. Train/Test division
         if session != "Session5":
             trainVid.append(convID)
@@ -147,20 +161,13 @@ for session in sessions:
 print("#Conversation in train:", len(trainVid))
 print("#Conversation in Test:", len(testVid))
 
+save_file_path = "../../data/iemocap_multimodal_features_" + configuration_label + "_" + roberta + "_"+ OpenSmileChosen + ".pkl"
 
-if label_map == label_map_6:
-    # Save file pickle
-    with open("./data/iemocap_multimodal_features_6labels.pkl", "wb") as f:
-        pickle.dump(
-            (list(videoText.keys()), videoSpeakers, videoLabels, videoText,
-             None, None, None, videoAudio, trainVid, testVid),
-            f
-        )
-else:
-    # Save file pickle
-    with open("./data/iemocap_multimodal_features.pkl", "wb") as f:
-        pickle.dump(
-            (list(videoText.keys()), videoSpeakers, videoLabels, videoText,
-             None, None, None, videoAudio, trainVid, testVid),
-            f
-        )
+
+# Save file pickle
+with open(save_file_path, "wb") as f:
+    pickle.dump(
+        (list(videoText.keys()), videoSpeakers, videoLabels, videoText,
+         None, None, None, videoAudio, trainVid, testVid),
+        f
+    )
