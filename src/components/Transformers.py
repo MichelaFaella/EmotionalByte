@@ -6,8 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
-from components.SpeakerEmbedding import SpeakerEmbedding
-from components.PositionalEncoding import PositionalEncoding
+from src.components.SpeakerEmbedding import SpeakerEmbedding
+from src.components.PositionalEncoding import PositionalEncoding
 
 class PositionwiseFeedForward(nn.Module):
 
@@ -67,7 +67,7 @@ class TransformerEncoder(nn.Module):
 
         key_padding_mask = ~mask.bool()
 
-        pos_emb = self.pos_emb(key_value_input)
+        pos_emb = self.pos_emb(key_value_input, key_padding_mask)
         speaker_emb = self.speaker_emb(speaker_id)
 
 
@@ -77,7 +77,7 @@ class TransformerEncoder(nn.Module):
         key_value_input = self.dropout(key_value_input)
 
         if not is_self_attention:
-            query_input = self.pos_emb(query_input) + self.speaker_emb(speaker_id) + query_input
+            query_input = self.pos_emb(query_input, mask) + self.speaker_emb(speaker_id) + query_input
             query_input = self.dropout(query_input)
 
         # Compute attention on layers
