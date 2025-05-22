@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader, random_split
 from dataLoader import DataLoader as dl
 from collections import Counter
 from pathlib import Path
+from math import isclose
 
 data = "./data/iemocap_multimodal_features_6_labels_roberta_fine_tuned_eGeMAPSv02.pkl"
 
@@ -58,9 +59,6 @@ def lossWeights():
 
     return loss_weights
 
-import torch
-from collections import Counter
-from math import isclose
 
 def lossWeightsNormalized():
     dataset, _ = getIEMOCAP()

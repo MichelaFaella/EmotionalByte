@@ -21,9 +21,14 @@ videoLabels = {}
 
 trainVid, testVid = [], []
 
-# happy, sad, angry, neutral, frustrated, excited, surprised, fearful, disgusted, indefinite, other
-label_map = {'hap': 0, 'sad': 1, 'ang': 2, 'neu': 3, 'fru':4, 'exc':0,
-             'sur':5, 'fea':5, 'dis':5,'xxx':5, 'oth':5}
+
+label_map = {'hap': 0, 'exc':0, # happy, excited
+             'sad': 1, # sad
+             'ang': 2, # angry
+             'neu': 3, # neutral
+             'fru':4, # frustrated
+             'sur':5, 'fea':5, 'dis':5,'xxx':5, 'oth':5 # surprised, fearful, disgusted, indefinite, other
+             }
 
 
 label_map = label_map_6
