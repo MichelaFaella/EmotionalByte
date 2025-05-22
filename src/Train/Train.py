@@ -6,7 +6,7 @@ from tensorboardX import SummaryWriter
 import torch.optim as optim
 from sklearn.metrics import f1_score, accuracy_score
 
-from src.dataLoader.getDataset import get_IEMOCAP_loaders, lossWeightsNormalized, getDataName
+from src.dataLoader.getDataset import get_IEMOCAP_loaders, lossWeightsNormalized, getDataName, getDimension, changeDimension
 from src.components.model import Transformer_Based_Model
 from src.Plot.Plot import plotLossTrain, plotLossEval
 from src.Train.Losses import *
@@ -27,12 +27,8 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
 
         text_feature, audio_feature, qmask, umask, label, vid = data
 
-        text_feature = text_feature.permute(0, 1, 3, 2).squeeze(-1)  # (seq_len_text, batch, dim)
-        audio_feature = audio_feature.permute(0, 1, 3, 2).squeeze(-1)  # (seq_len_audio, batch, dim)
-        label = label.squeeze(-1)  # (batch, seq_len)
-        umask = umask.permute(1, 0)  # (seq_len, batch)
-        qmask = qmask.permute(0, 1, 3, 2)[:, :, 0, 0]  # (seq_len_spk, batch, dim)
-
+        text_feature, audio_feature, qmask, umask, label = changeDimension(text_feature, audio_feature, label, umask, qmask)
+                                                                                                                                                                                                                                                                     
         lengths = [(umask[j] == 1).nonzero().tolist()[-1][0] + 1 for j in
                    range(len(umask))]  # Compute the real length of a sequence
 
@@ -112,9 +108,6 @@ def log_tensorboard(writer, phase, acc, fscore, epoch):
 def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", return_val_score=False, **kwargs):
     torch.manual_seed(42)
 
-    input_dim = {'text': 768, 'audio': 88, 'speaker': 2}
-    n_classes = 6
-
     model_dimension = kwargs.get("model_dimension", 32)
     n_head = kwargs.get("n_head", 8)
     n_epochs = kwargs.get("n_epochs", 70)
@@ -124,6 +117,15 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
     batch_size = kwargs.get("batch_size", 16)
 
     train_loader, val_loader, test_loader, design_loader = get_IEMOCAP_loaders(batch_size=batch_size, validRatio=0.2)
+
+    # Get a single batch from the training loader to determine input dimensions dynamically
+    sample_batch = next(iter(train_loader))
+    # Unpack only the necessary components from the batch (ignore others with underscores)
+    text_feature, audio_feature, _, _, _, _ = sample_batch
+    # Compute text and audio feature dimensions using a helper function
+    text_dim, audio_dim = getDimension(text_feature, audio_feature)
+    input_dim = {'text': text_dim, 'audio': audio_dim, 'speaker': 2}
+    n_classes = 6
 
     hyperparams = f"Model Dimension:{model_dimension}, Epochs:{n_epochs}, Learning Rate:{lr}, Weight Decay:{weight_decay}"
     tensorboard = kwargs.get("tensorboard", True)

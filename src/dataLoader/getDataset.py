@@ -9,14 +9,14 @@ from pathlib import Path
 
 pickle_files = {
     1 : "../data/iemocap_multimodal_features_6_labels_roberta-base_eGeMAPSv02.pkl",
-    2 : "../data/iemocap_multimodal_features_6_labels_roberta-fine-tuned_eGeMAPSv02.pkl",
+    2 : "./data/IEMOCAP/iemocap_multimodal_features_6_labels_roberta_fine_tuned_eGeMAPSv02.pkl",
     3 : "../data/iemocap_multimodal_features_6_labels_roberta-base_ComParE_2016.pkl",
     4 : "../data/iemocap_multimodal_features_6_labels_roberta-fine-tuned_ComParE_2016.pkl",
     5 : "../data/iemocap_multimodal_features_6_labels_roberta-base_emobase.pkl",
     6 : "../data/iemocap_multimodal_features_6_labels_roberta-fine-tuned_emobase.pkl"
 }
 
-data = pickle_files[1]
+data = pickle_files[2]
 
 def splitDataset(ds, vaildRatio):
     
@@ -106,3 +106,19 @@ def getDataName():
     return data_name
 
 
+def changeDimension(text_feature, audio_feature, label, umask, qmask):
+    
+    text_feature = text_feature.permute(0, 1, 3, 2).squeeze(-1)  # (seq_len_text, batch, dim)
+    audio_feature = audio_feature.permute(0, 1, 3, 2).squeeze(-1)  # (seq_len_audio, batch, dim)
+    label = label.squeeze(-1)  # (batch, seq_len)
+    umask = umask.permute(1, 0)  # (seq_len, batch)
+    qmask = qmask.permute(0, 1, 3, 2)[:, :, 0, 0]  # (seq_len_spk, batch, dim)
+
+    return text_feature, audio_feature, qmask, umask, label
+
+def getDimension(text_feature, audio_feature):
+    
+    text_dim = text_feature.shape[-1]
+    audio_dim = audio_feature.shape[-1]
+
+    return text_dim, audio_dim
