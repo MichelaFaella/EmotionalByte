@@ -1,5 +1,5 @@
-from src.Train.Train import TrainSDT
-from src.Train.Gridsearch import grid_search
+from Train.Train import TrainSDT
+from Train.Gridsearch import grid_search
 
 
 if __name__ == '__main__':
@@ -48,7 +48,8 @@ if __name__ == '__main__':
             "lr": 1e-3,
             "dropout": 0.0,
             "weight_decay": 0.03,
-            "batch_size": 16
+            "batch_size": 16,
+            "modality": 'audio'
         }
 
     TrainSDT(**best_config, **fixed_params, run_name="best_model_test", return_val_score=False)

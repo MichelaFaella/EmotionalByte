@@ -2,11 +2,11 @@ import math
 
 import torch
 from torch.utils.data import DataLoader, random_split
-from src.dataLoader import DataLoader as dl
+from dataLoader import DataLoader as dl
 from collections import Counter
 from pathlib import Path
 
-data = "../data/iemocap_multimodal_features_6labels.pkl"
+data = "./data/iemocap_multimodal_features_6_labels_roberta_fine_tuned_eGeMAPSv02.pkl"
 
 def splitDataset(ds, vaildRatio):
     
