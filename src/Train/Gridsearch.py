@@ -1,5 +1,5 @@
 from itertools import product
-from src.Train.Train import TrainSDT
+from Train.Train import TrainSDT
 
 
 def grid_search(param_grid, fixed_params=None):
