@@ -8,7 +8,7 @@ from sklearn.metrics import f1_score, accuracy_score
 
 from src.dataLoader.getDataset import get_IEMOCAP_loaders, lossWeightsNormalized, getDataName, getDimension, changeDimension
 from src.components.model import Transformer_Based_Model
-from src.Plot.Plot import plotLossTrain, plotLossEval
+from src.Plot.Plot import plotLosses, plotEval, plotTotalLoss, confusionMatrix
 from src.Train.Losses import *
 
 
@@ -157,8 +157,8 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
         train_metrics = run_phase(model, loss_fun, kl_loss, train_dl, e, writer, optimizer, True, gamma_1, gamma_2, gamma_3)
         eval_metrics = run_phase(model, loss_fun, kl_loss, eval_dl, e, writer, None, False, gamma_1, gamma_2, gamma_3)
 
-        train_loss, train_acc, _, _, _, train_fscore, loss_task, loss_ce_t, loss_ce_a, loss_kl_t, loss_kl_a, loss = train_metrics
-        eval_loss, eval_acc, _, _, _, eval_fscore, *_ = eval_metrics
+        train_loss, train_acc, train_labels, train_preds, _, train_fscore, loss_task, loss_ce_t, loss_ce_a, loss_kl_t, loss_kl_a, loss = train_metrics
+        eval_loss, eval_acc, eval_labels, eval_preds, _, eval_fscore, *_ = eval_metrics
 
         log_tensorboard(writer, "train", train_acc, train_fscore, e)
         log_tensorboard(writer, "val" if return_val_score else "test", eval_acc, eval_fscore, e)
@@ -179,8 +179,12 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
             best_val_fscore = eval_fscore
 
     phase_str = "VALIDATION" if return_val_score else "TEST"
-    plotLossTrain(logs=logs_train, epochs=n_epochs, hyperparams=hyperparams, save_path=file_name + "_train")
-    plotLossEval(logs=logs_eval, epochs=n_epochs, phase=phase_str, hyperparams=hyperparams, save_path=file_name + ("_val" if return_val_score else "_test"))
+    plotLosses(logs=logs_train, epochs=n_epochs, hyperparams=hyperparams, save_path=file_name + "_train")
+    plotEval(logs=logs_eval, epochs=n_epochs, phase=phase_str, hyperparams=hyperparams, save_path=file_name + ("_val" if return_val_score else "_test"))
+    if phase_str != "VALIDATION":
+        plotTotalLoss(logs_train=logs_train, logs_test=logs_eval, epochs=n_epochs, hyperparams=hyperparams, save_path= file_name + "total_loss" )
+        #plot confusion matrix
+        confusionMatrix(labels=eval_labels, preds=eval_preds, save_path=file_name + "confusion_matrix")
 
     if writer:
         writer.close()
