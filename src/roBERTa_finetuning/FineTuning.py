@@ -1,9 +1,16 @@
-from transformers import RobertaTokenizer, RobertaForSequenceClassification, Trainer, TrainingArguments
+from transformers import (
+    RobertaTokenizer,
+    RobertaForSequenceClassification,
+    Trainer,
+    TrainingArguments,
+    EarlyStoppingCallback
+)
 from sklearn.model_selection import train_test_split
 import pandas as pd
 from datasets import Dataset
 from sklearn.metrics import classification_report
 from sklearn.metrics import accuracy_score, f1_score
+import wandb
 
 def tokenize_function(example):
     return tokenizer(example["text"], padding="max_length", truncation=True)

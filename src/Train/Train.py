@@ -6,10 +6,10 @@ from tensorboardX import SummaryWriter
 import torch.optim as optim
 from sklearn.metrics import f1_score, accuracy_score
 
-from dataLoader.getDataset import get_IEMOCAP_loaders, lossWeightsNormalized, getDataName, getDimension, changeDimension
-from components.model import Transformer_Based_Model
-from Plot.Plot import log_confusion_matrix
-from Train.Losses import *
+from src.dataLoader.getDataset import get_IEMOCAP_loaders, lossWeightsNormalized, getDataName, getDimension, changeDimension
+from src.components.model import Transformer_Based_Model
+from src.Plot.Plot import *
+from src.Train.Losses import *
 
 
 def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=None, train=False, writer=None,
