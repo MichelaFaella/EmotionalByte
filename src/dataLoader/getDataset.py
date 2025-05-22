@@ -9,7 +9,7 @@ from pathlib import Path
 
 pickle_files = {
     1 : "../data/iemocap_multimodal_features_6_labels_roberta-base_eGeMAPSv02.pkl",
-    2 : "./data/IEMOCAP/iemocap_multimodal_features_6_labels_roberta_fine_tuned_eGeMAPSv02.pkl",
+    2 : "../data/iemocap_multimodal_features_6_labels_roberta-fine-tuned_eGeMAPSv02.pkl",
     3 : "../data/iemocap_multimodal_features_6_labels_roberta-base_ComParE_2016.pkl",
     4 : "../data/iemocap_multimodal_features_6_labels_roberta-fine-tuned_ComParE_2016.pkl",
     5 : "../data/iemocap_multimodal_features_6_labels_roberta-base_emobase.pkl",

@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
+import sklearn.metrics as metrics
 import os
-
 
 Plot_save_result = "../Result/Plots/"
 
-def plotLossTrain(logs, epochs, save_path="", hyperparams=None):
+def plotLosses(logs, epochs, save_path="", hyperparams=None):
     epoch_range = list(range(1, epochs + 1))
 
     # --- Task and Cross-Entropy Losses ---
@@ -44,36 +44,43 @@ def plotLossTrain(logs, epochs, save_path="", hyperparams=None):
     ShowOrSavePlot(Plot_save_result + save_path, "TRAIN_loss_kl")
     plt.close(fig_kl)
 
-    # --- Total Loss ---
-    fig_total, ax_total = plt.subplots(figsize=(10, 4))
-    ax_total.plot(epoch_range, [l.item() for l in logs['loss']], label='loss')
-    ax_total.set_xlabel("Epochs")
-    ax_total.set_ylabel("Total Loss")
-    ax_total.set_title("TRAIN - Total Loss")
-    ax_total.legend()
-    ax_total.grid(True)
-
-    if hyperparams:
-        ax_total.text(0.5, -0.35, f"Hyperparameters: {hyperparams}",
-                      ha='center', va='top', transform=ax_total.transAxes, fontsize=9)
-
-    fig_total.tight_layout()
-    ShowOrSavePlot(Plot_save_result + save_path, "TRAIN_loss")
-    plt.close(fig_total)
 
 
-def plotLossEval(logs, epochs, phase, save_path="", hyperparams=None):
+def plotEval(logs, epochs, phase, save_path="", hyperparams=None):
     """
     phase: should be either "VALIDATION" or "TEST"
     """
     epoch_range = list(range(1, epochs + 1))
 
-    # --- Total Loss ---
+
+    # --- Fscore and Accuracy---
+    fig_eval, ax_eval = plt.subplots(figsize=(10, 4))
+    ax_eval.plot(epoch_range, logs['fscore'], label=f'{phase.lower()}_fscore')
+    ax_eval.plot(epoch_range, logs['acc'], label=f'{phase.lower()}_accuracy')
+    ax_eval.set_xlabel("Epochs")
+    #ax_eval.set_ylabel("Fscore")
+    ax_eval.set_title(f"{phase} - Accuracy and Fscore")
+    ax_eval.legend()
+    ax_eval.grid(True)
+
+    if hyperparams:
+        ax_eval.text(0.5, -0.35, f"Hyperparameters: {hyperparams}",
+                    ha='center', va='top', transform=ax_eval.transAxes, fontsize=9)
+
+    fig_eval.tight_layout()
+    ShowOrSavePlot(Plot_save_result + save_path, f"{phase}_eval")
+    plt.close(fig_eval)
+
+
+def plotTotalLoss(logs_train, logs_test, epochs, save_path="", hyperparams=None):
+    epoch_range = list(range(1, epochs + 1))
+
     fig_loss, ax_loss = plt.subplots(figsize=(10, 4))
-    ax_loss.plot(epoch_range, logs['loss'], label=f'{phase.lower()}_loss')
+    ax_loss.plot(epoch_range, [l.item() for l in logs_train['loss']], label='Train_loss')
+    ax_loss.plot(epoch_range, logs_test['loss'], label=f'Test_loss')
     ax_loss.set_xlabel("Epochs")
     ax_loss.set_ylabel("Total Loss")
-    ax_loss.set_title(f"{phase} - Total Loss")
+    ax_loss.set_title(f"Total Loss")
     ax_loss.legend()
     ax_loss.grid(True)
 
@@ -82,42 +89,17 @@ def plotLossEval(logs, epochs, phase, save_path="", hyperparams=None):
                       ha='center', va='top', transform=ax_loss.transAxes, fontsize=9)
 
     fig_loss.tight_layout()
-    ShowOrSavePlot(Plot_save_result + save_path, f"{phase}_loss")
+    ShowOrSavePlot(Plot_save_result + save_path, f"TOTAL_loss")
     plt.close(fig_loss)
 
-    # --- Fscore ---
-    fig_fsc, ax_fsc = plt.subplots(figsize=(10, 4))
-    ax_fsc.plot(epoch_range, logs['fscore'], label=f'{phase.lower()}_fscore')
-    ax_fsc.set_xlabel("Epochs")
-    ax_fsc.set_ylabel("Fscore")
-    ax_fsc.set_title(f"{phase} - Fscore")
-    ax_fsc.legend()
-    ax_fsc.grid(True)
-
-    if hyperparams:
-        ax_fsc.text(0.5, -0.35, f"Hyperparameters: {hyperparams}",
-                    ha='center', va='top', transform=ax_fsc.transAxes, fontsize=9)
-
-    fig_fsc.tight_layout()
-    ShowOrSavePlot(Plot_save_result + save_path, f"{phase}_fscore")
-    plt.close(fig_fsc)
-
-    # --- Accuracy ---
-    fig_acc, ax_acc = plt.subplots(figsize=(10, 4))
-    ax_acc.plot(epoch_range, logs['acc'], label=f'{phase.lower()}_acc')
-    ax_acc.set_xlabel("Epochs")
-    ax_acc.set_ylabel("Accuracy")
-    ax_acc.set_title(f"{phase} - Accuracy")
-    ax_acc.legend()
-    ax_acc.grid(True)
-
-    if hyperparams:
-        ax_acc.text(0.5, -0.35, f"Hyperparameters: {hyperparams}",
-                    ha='center', va='top', transform=ax_acc.transAxes, fontsize=9)
-
-    fig_acc.tight_layout()
-    ShowOrSavePlot(Plot_save_result + save_path, f"{phase}_accuracy")
-    plt.close(fig_acc)
+def confusionMatrix(labels, preds, save_path=""):
+    cfm = metrics.confusion_matrix(labels, preds)
+    labels_name = ['hap\nexc', 'sad', 'ang', 'neu', 'fru', 'sur, fea\ndis, oth']
+    disp = metrics.ConfusionMatrixDisplay(cfm, display_labels=labels_name)
+    plt.figure(figsize=(15, 15))
+    disp.plot(cmap='Blues')
+    plt.tight_layout()
+    ShowOrSavePlot(Plot_save_result + save_path, f"Confusion Matrix")
 
 
 def ShowOrSavePlot(path: str = None, filename: str = "img"):
