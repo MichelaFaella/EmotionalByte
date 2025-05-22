@@ -2,7 +2,7 @@ import math
 
 import torch
 from torch.utils.data import DataLoader, random_split
-from src.dataLoader import DataLoader as dl
+from dataLoader import DataLoader as dl
 from collections import Counter
 from pathlib import Path
 
