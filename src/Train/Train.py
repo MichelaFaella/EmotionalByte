@@ -8,7 +8,7 @@ from sklearn.metrics import f1_score, accuracy_score
 
 from dataLoader.getDataset import get_IEMOCAP_loaders, lossWeightsNormalized, getDataName, getDimension, changeDimension
 from components.model import Transformer_Based_Model
-from Plot.Plot import plotLosses, plotEval, plotTotalLoss, confusionMatrix
+from Plot.Plot import log_confusion_matrix
 from Train.Losses import *
 
 
@@ -97,7 +97,8 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
             # tensorboard
             for name, param in model.named_parameters():
                 if param.grad is not None:
-                    writer.add_histogram(name, param.grad, epoch)
+                    writer.add_histogram(name + '_grad', param.grad, epoch)
+                writer.add_histogram(name + '_weights', param, epoch)
             optimizer.step()
 
     if preds != []:
@@ -128,10 +129,13 @@ def run_phase(model, loss_fun, kl_loss, dataloader, epoch, writer, optimizer, tr
         gamma_3=gamma_3,
     )
 
-def log_tensorboard(writer, phase, acc, fscore, epoch):
+def log_tensorboard(writer, phase, acc, fscore, loss, losses, epoch):
     if writer:
         writer.add_scalar(f'{phase}: accuracy', acc, epoch)
         writer.add_scalar(f'{phase}: fscore', fscore, epoch)
+        writer.add_scalar(f'{phase}: loss', loss, epoch)
+        for key in losses:
+            writer.add_scalar(f'{phase}: {key}', losses[key].item(), epoch)
 
 def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", return_val_score=False, **kwargs):
     torch.manual_seed(42)
@@ -156,9 +160,16 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
     input_dim = {'text': text_dim, 'audio': audio_dim, 'speaker': 2}
     n_classes = 6
 
-    hyperparams = f"Model Dimension:{model_dimension}, Epochs:{n_epochs}, Learning Rate:{lr}, Weight Decay:{weight_decay}"
+    print(f"Model Dimension:{model_dimension}, Epochs:{n_epochs}, Learning Rate:{lr}, Weight Decay:{weight_decay}, Modality: {modality}")
     tensorboard = kwargs.get("tensorboard", True)
     writer = SummaryWriter(log_dir=f"runs/{run_name}") if tensorboard else None
+    if writer:
+        hparams_text = (
+            f"Model Dim: {model_dimension}, Dropout: {dropout}, LR: {lr}, "
+            f"Weight Decay: {weight_decay}, Batch Size: {batch_size}, "
+            f"Gamma: ({gamma_1}, {gamma_2}, {gamma_3}), Modality: {modality}"
+        )
+        writer.add_text("Hyperparameters", hparams_text, 0)
 
     model = Transformer_Based_Model(
         dataset=train_loader,
@@ -190,8 +201,8 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
         train_loss, train_acc, train_labels, train_preds, _, train_fscore, losses = train_metrics
         eval_loss, eval_acc, eval_labels, eval_preds, _, eval_fscore, *_ = eval_metrics
 
-        log_tensorboard(writer, "train", train_acc, train_fscore, e)
-        log_tensorboard(writer, "val" if return_val_score else "test", eval_acc, eval_fscore, e)
+        log_tensorboard(writer, "train", train_acc, train_fscore, train_loss, losses, e)
+        log_tensorboard(writer, "val" if return_val_score else "test", eval_acc, eval_fscore, eval_loss, {}, e)
 
         logs_eval['loss'].append(eval_loss)
         logs_eval['acc'].append(eval_acc)
@@ -211,16 +222,13 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
         if return_val_score and eval_fscore > best_val_fscore:
             best_val_fscore = eval_fscore
 
-    phase_str = "VALIDATION" if return_val_score else "TEST"
-    #plotLosses(logs=logs_train, epochs=n_epochs, hyperparams=hyperparams, save_path=file_name + "_train")
-    #plotEval(logs=logs_eval, epochs=n_epochs, phase=phase_str, hyperparams=hyperparams, save_path=file_name + ("_val" if return_val_score else "_test"))
-    if phase_str != "VALIDATION":
-        pass
-        #plotTotalLoss(logs_train=logs_train, logs_test=logs_eval, epochs=n_epochs, hyperparams=hyperparams, save_path= file_name + "total_loss" )
-        #plot confusion matrix
-        #confusionMatrix(labels=eval_labels, preds=eval_preds, save_path=file_name + "confusion_matrix")
+        if writer:
+            # Log confusion matrix for eval phase
+            log_confusion_matrix(writer, eval_labels, eval_preds, e, "val" if return_val_score else "test")
 
     if writer:
+        # Log confusion matrix
+        log_confusion_matrix(writer, eval_labels, eval_preds, e, "val" if return_val_score else "test")
         writer.close()
 
     if return_val_score:

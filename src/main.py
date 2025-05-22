@@ -49,7 +49,7 @@ if __name__ == '__main__':
             "dropout": 0.0,
             "weight_decay": 0.03,
             "batch_size": 16,
-            "modality": 'audio'
+            "modality": 'multi'
         }
 
     TrainSDT(**best_config, **fixed_params, run_name="best_model_test", return_val_score=False)
