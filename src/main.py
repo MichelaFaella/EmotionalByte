@@ -1,10 +1,5 @@
-<<<<<<< HEAD
-from src.Train.Train import TrainSDT
-from src.Train.Gridsearch import grid_search
-=======
 from Train.Train import TrainSDT
 from Train.Gridsearch import grid_search
->>>>>>> modelRefactor
 
 
 if __name__ == '__main__':

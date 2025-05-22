@@ -6,17 +6,10 @@ from tensorboardX import SummaryWriter
 import torch.optim as optim
 from sklearn.metrics import f1_score, accuracy_score
 
-<<<<<<< HEAD
-from src.dataLoader.getDataset import get_IEMOCAP_loaders, lossWeightsNormalized, getDataName, getDimension, changeDimension
-from src.components.model import Transformer_Based_Model
-from src.Plot.Plot import plotLosses, plotEval, plotTotalLoss, confusionMatrix
-from src.Train.Losses import *
-=======
 from dataLoader.getDataset import get_IEMOCAP_loaders, lossWeightsNormalized, getDataName, getDimension, changeDimension
 from components.model import Transformer_Based_Model
 from Plot.Plot import log_confusion_matrix
 from Train.Losses import *
->>>>>>> modelRefactor
 
 
 def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=None, train=False, writer=None,
@@ -35,35 +28,6 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
         text_feature, audio_feature, qmask, umask, label, vid = data
 
         text_feature, audio_feature, qmask, umask, label = changeDimension(text_feature, audio_feature, label, umask, qmask)
-<<<<<<< HEAD
-                                                                                                                                                                                                                                                                     
-        lengths = [(umask[j] == 1).nonzero().tolist()[-1][0] + 1 for j in
-                   range(len(umask))]  # Compute the real length of a sequence
-
-        t_log_prob, a_log_prob, all_log_prob, all_prob, t_kl_log_prob, a_kl_log_prob, all_kl_prob = model(text_feature,
-                                                                                                          audio_feature,
-                                                                                                          qmask, umask)
-        # print(f"t_log_prob: {t_log_prob}\n a_log_prob: {a_log_prob} \n all_log_prob: {all_log_prob} \n all_prob: {all_prob}")
-
-        t_lp = t_log_prob.view(-1, t_log_prob.size()[2])
-        a_lp = a_log_prob.view(-1, a_log_prob.size()[2])
-        all_lp = all_log_prob.view(-1, all_log_prob.size()[2])
-        labels_ = label.view(-1)
-
-        t_kl_lp = t_kl_log_prob.view(-1, t_kl_log_prob.size()[2])
-        a_kl_lp = a_kl_log_prob.view(-1, a_kl_log_prob.size()[2])
-        all_kl_p = all_kl_prob.view(-1, all_kl_prob.size()[2])
-
-        loss_task = loss_fun(all_lp, labels_, umask)
-        loss_ce_t = loss_fun(t_lp, labels_, umask)
-        loss_ce_a = loss_fun(a_lp, labels_, umask)
-        loss_kl_t = kl_loss(t_kl_lp, all_kl_p, umask)
-        loss_kl_a = kl_loss(a_kl_lp, all_kl_p, umask)
-
-        loss = gamma_1 * loss_task + gamma_2 * (loss_ce_t + loss_ce_a) + gamma_3 * (loss_kl_t + loss_kl_a)
-
-        lp_ = all_prob.view(-1, all_prob.size()[2])
-=======
                                                                                                                                                                                                                                                                     
         lengths = [(umask[j] == 1).nonzero().tolist()[-1][0] + 1 for j in
                    range(len(umask))]  # Compute the real length of a sequence
@@ -120,7 +84,6 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
                 'loss_kl_a': loss_kl_a,
                 'loss': loss
             }
->>>>>>> modelRefactor
 
         pred = torch.argmax(lp_, 1)
         preds.append(pred.data.cpu().numpy())

@@ -160,20 +160,11 @@ print("#Conversation in Test:", len(testVid))
 
 save_file_path = "../../data/iemocap_multimodal_features_" + configuration_label + "_" + roberta + "_"+ OpenSmileChosen + ".pkl"
 
-<<<<<<< HEAD
-# Save file pickle
-with open("./data/iemocap_multimodal_features_6labels.pkl", "wb") as f:
-=======
 
 # Save file pickle
 with open(save_file_path, "wb") as f:
->>>>>>> modelRefactor
     pickle.dump(
         (list(videoText.keys()), videoSpeakers, videoLabels, videoText,
          None, None, None, videoAudio, trainVid, testVid),
         f
-<<<<<<< HEAD
     )
-=======
-    )
->>>>>>> modelRefactor
