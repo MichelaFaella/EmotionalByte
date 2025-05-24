@@ -7,7 +7,7 @@ from collections import Counter
 from pathlib import Path
 from math import isclose
 
-data = "../data/iemocap_multimodal_features_6_labels_emoberta-tae898_emobase.pkl"
+data = "../data/iemocap_multimodal_features_6_labels_emoberta-tae898_eGeMAPSv02.pkl"
 
 def splitDataset(ds, vaildRatio):
     

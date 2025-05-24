@@ -5,9 +5,9 @@ import opensmile
 from transformers import RobertaTokenizer, RobertaForSequenceClassification, RobertaModel
 from transformers import AutoTokenizer, AutoModel, AutoModelForSequenceClassification
 
-root = "../../data/IEMOCAP/"
+root = "../data/IEMOCAP/"
 sessions = [f"Session{i}" for i in range(1, 6)]
-r_tuned = True
+r_tuned = False
 
 videoTextConv = {}
 videoAudioConv = {}
@@ -53,7 +53,7 @@ feature_sets = {
     "eGeMAPSv02" : opensmile.FeatureSet.eGeMAPSv02
 }
 
-OpenSmileChosen = "emobase"
+OpenSmileChosen = "eGeMAPSv02"
 
 smile = opensmile.Smile(
     feature_set=feature_sets[OpenSmileChosen],

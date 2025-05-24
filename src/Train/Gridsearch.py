@@ -1,5 +1,7 @@
+from datetime import datetime
 from itertools import product
 from Train.Train import TrainSDT
+
 
 
 def grid_search(param_grid, fixed_params=None):
@@ -19,6 +21,7 @@ def grid_search(param_grid, fixed_params=None):
     num_config = len(list(product(*values)))
 
     for i, combo in enumerate(product(*values)):
+        start = datetime.now()
         config = dict(zip(keys, combo))
         full_config = {**fixed_params, **config}
 
@@ -33,6 +36,10 @@ def grid_search(param_grid, fixed_params=None):
         if score > best_score:
             best_score = score
             best_config = config
+
+        end = datetime.now()
+        time_elapsed = end - start
+        print(f"Combination time: {time_elapsed:.2f} seconds")
 
     print(f"\nBest Config: {best_config}")
     print(f"Best Validation F1: {best_score}")

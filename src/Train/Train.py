@@ -6,10 +6,10 @@ from tensorboardX import SummaryWriter
 import torch.optim as optim
 from sklearn.metrics import f1_score, accuracy_score
 
-from src.dataLoader.getDataset import get_IEMOCAP_loaders, lossWeightsNormalized, getDataName, getDimension, changeDimension
-from src.components.model import Transformer_Based_Model
-from src.Plot.Plot import *
-from src.Train.Losses import *
+from dataLoader.getDataset import get_IEMOCAP_loaders, lossWeightsNormalized, getDataName, getDimension, changeDimension
+from components.model import Transformer_Based_Model
+from Plot.Plot import *
+from Train.Losses import *
 
 import csv
 import os
