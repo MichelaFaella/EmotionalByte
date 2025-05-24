@@ -6,10 +6,14 @@ from tensorboardX import SummaryWriter
 import torch.optim as optim
 from sklearn.metrics import f1_score, accuracy_score
 
-from src.dataLoader.getDataset import get_IEMOCAP_loaders, lossWeightsNormalized, getDataName, getDimension, changeDimension
-from src.components.model import Transformer_Based_Model
-from src.Plot.Plot import *
-from src.Train.Losses import *
+from dataLoader.getDataset import get_IEMOCAP_loaders, lossWeightsNormalized, getDataName, getDimension, changeDimension
+from components.model import Transformer_Based_Model
+from Util.Plot import *
+from Train.Losses import *
+
+from Util.SaveModel import *
+
+from Util.SaveModel import save_hyperparams, save_results
 
 
 def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=None, train=False, writer=None,
@@ -137,7 +141,7 @@ def log_tensorboard(writer, phase, acc, fscore, loss, losses, epoch):
         for key in losses:
             writer.add_scalar(f'{phase}: {key}', losses[key].item(), epoch)
 
-def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", return_val_score=False, **kwargs):
+def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, data="", run_name="exp1", dirpath ="results", return_val_score=False, **kwargs):
     torch.manual_seed(42)
 
     model_dimension = kwargs.get("model_dimension", 32)
@@ -149,7 +153,7 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
     batch_size = kwargs.get("batch_size", 16)
     modality = kwargs.get("modality", 'multi')
 
-    train_loader, val_loader, test_loader, design_loader = get_IEMOCAP_loaders(batch_size=batch_size, validRatio=0.2)
+    train_loader, val_loader, test_loader, design_loader = get_IEMOCAP_loaders(data=data, batch_size=batch_size, validRatio=0.2)
 
     # Get a single batch from the training loader to determine input dimensions dynamically
     sample_batch = next(iter(train_loader))
@@ -171,6 +175,27 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
         )
         writer.add_text("Hyperparameters", hparams_text, 0)
 
+    # === Save hyperparameters summary (only once per run) ===
+    if not return_val_score:
+        hparams_text = {
+            "Model dimension" : model_dimension,
+            "Dropout" : dropout,
+            "Lr" : lr,
+            "Weight Decay" : weight_decay,
+            "Batch Size": batch_size,
+            "Temp"  : temp,
+            "n_head" : n_head,
+            "n_epochs" : n_epochs,
+            "Gamma1" : gamma_1,
+            "Gamma2" : gamma_2,
+            "Gamma3" : gamma_3,
+            "Modality": modality
+        }
+
+        save_hyperparams(dirpath, run_name, **hparams_text)
+
+
+
     model = Transformer_Based_Model(
         dataset=train_loader,
         input_dimension=input_dim,
@@ -183,7 +208,7 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
     )
 
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-    loss_fun = MaskedNLLLoss(lossWeightsNormalized())
+    loss_fun = MaskedNLLLoss(lossWeightsNormalized(data))
     kl_loss = MaskedKLDivLoss(tau=temp)
 
     logs_train = {key: [] for key in ['loss_task', 'loss_ce_t', 'loss_ce_a', 'loss_kl_t', 'loss_kl_a', 'loss']}
@@ -191,7 +216,7 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
 
     train_dl, eval_dl = (train_loader, val_loader) if return_val_score else (design_loader, test_loader)
 
-    file_name = getDataName()
+    file_name = getDataName(data)
     best_val_fscore = 0
 
     for e in range(n_epochs):
@@ -208,16 +233,20 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
         logs_eval['acc'].append(eval_acc)
         logs_eval['fscore'].append(eval_fscore)
 
+
         for key in logs_train:
             if key in losses:
                 logs_train[key].append(losses[key].item())
             else:
                 logs_train[key].append(0.0)  # Handle missing keys appropriately
 
+
         if not return_val_score:
             print(f"Epoch: {e + 1}/{n_epochs}")
             print(f"Train -> loss: {train_loss}, acc: {train_acc}, fscore: {train_fscore}")
             print(f"Test  -> loss: {eval_loss}, acc: {eval_acc}, fscore: {eval_fscore}")
+            # === Save results to CSV ===
+            save_results(dirpath, run_name, e, losses, train_loss, train_acc, train_fscore, eval_loss, eval_acc, eval_fscore)
 
         if return_val_score and eval_fscore > best_val_fscore:
             best_val_fscore = eval_fscore
@@ -225,6 +254,8 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
         if writer:
             # Log confusion matrix for eval phase
             log_confusion_matrix(writer, eval_labels, eval_preds, e, "val" if return_val_score else "test")
+
+
 
     if writer:
         # Log confusion matrix

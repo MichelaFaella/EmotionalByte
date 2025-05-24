@@ -7,7 +7,6 @@ from collections import Counter
 from pathlib import Path
 from math import isclose
 
-data = "../data/iemocap_multimodal_features_6_labels_emoberta-tae898_emobase.pkl"
 
 def splitDataset(ds, vaildRatio):
     
@@ -18,9 +17,9 @@ def splitDataset(ds, vaildRatio):
     
     return train_dataset, val_dataset
 
-def get_IEMOCAP_loaders(batch_size, validRatio):
+def get_IEMOCAP_loaders(data, batch_size, validRatio):
     # Create dataset for training
-    dataset, test_set = getIEMOCAP()
+    dataset, test_set = getIEMOCAP(data)
     train_set, val_set = splitDataset(dataset, validRatio)
 
     tr_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, collate_fn=dataset.collate_fn)
@@ -30,15 +29,15 @@ def get_IEMOCAP_loaders(batch_size, validRatio):
 
     return tr_loader, val_loader, test_loader,design_loader
 
-def getIEMOCAP():
+def getIEMOCAP(data):
     # Create dataset for training
     dataset = dl.IEMOCAPDataset(data, train=True)
     testset = dl.IEMOCAPDataset(data, train=False)
 
     return dataset, testset
 
-def lossWeights():
-    dataset, _ = getIEMOCAP()
+def lossWeights(data):
+    dataset, _ = getIEMOCAP(data)
 
     # Initialize a counter
     label_counter = Counter()
@@ -60,8 +59,8 @@ def lossWeights():
     return loss_weights
 
 
-def lossWeightsNormalized():
-    dataset, _ = getIEMOCAP()
+def lossWeightsNormalized(data):
+    dataset, _ = getIEMOCAP(data)
 
     # Conta le etichette nel training set
     label_counter = Counter()
@@ -89,7 +88,7 @@ def lossWeightsNormalized():
 
 
 
-def getDataName():
+def getDataName(data):
     data_name = Path(data).stem
     return data_name
 

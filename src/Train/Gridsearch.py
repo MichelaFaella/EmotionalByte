@@ -1,8 +1,10 @@
+from datetime import datetime
 from itertools import product
 from Train.Train import TrainSDT
 
 
-def grid_search(param_grid, fixed_params=None):
+
+def grid_search(param_grid, fixed_params=None, dirpath="results", data=""):
     """
     param_grid: dict of hyperparameters to grid search (values must be lists)
     fixed_params: dict of additional fixed parameters passed to TrainSDT
@@ -19,13 +21,14 @@ def grid_search(param_grid, fixed_params=None):
     num_config = len(list(product(*values)))
 
     for i, combo in enumerate(product(*values)):
+        start = datetime.now()
         config = dict(zip(keys, combo))
         full_config = {**fixed_params, **config}
 
         run_name = "grid_" + "_".join([f"{k}{v}" for k, v in config.items()])
         print(f"\n Running config {i+1}/{num_config}: {config}")
 
-        score = TrainSDT(**full_config, run_name=run_name, return_val_score=True)
+        score = TrainSDT(**full_config, run_name=run_name, return_val_score=True, dirpath=dirpath, data=data)
         print(f"Validation F1-score: {score}")
 
         all_results.append((config, score))
@@ -33,6 +36,10 @@ def grid_search(param_grid, fixed_params=None):
         if score > best_score:
             best_score = score
             best_config = config
+
+        end = datetime.now()
+        time_elapsed = end - start
+        print(f"Combination time: {time_elapsed} seconds")
 
     print(f"\nBest Config: {best_config}")
     print(f"Best Validation F1: {best_score}")
