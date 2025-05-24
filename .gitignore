@@ -14,9 +14,8 @@ venv/
 **/.DS_Stores
 
 #Roberta finetuning
-src/roBERTa_finetuning/roberta-iemocap-old
-src/roBERTa_finetuning/*.csv
+src/Preprocessing/roBERTa_finetuning/roberta-iemocap-old
+src/Preprocessing/roBERTa_finetuning/*.csv
 
 #Dataset and pickle files
-*.pkl
-data/*
+data/IEMOCAP
