@@ -3,10 +3,11 @@ import pickle
 import torch
 import opensmile
 from transformers import RobertaTokenizer, RobertaForSequenceClassification, RobertaModel
+from transformers import AutoTokenizer, AutoModel, AutoModelForSequenceClassification
 
 root = "../../data/IEMOCAP/"
 sessions = [f"Session{i}" for i in range(1, 6)]
-r_tuned = False
+r_tuned = True
 
 videoTextConv = {}
 videoAudioConv = {}
@@ -30,14 +31,15 @@ label_map = {'hap': 0, 'exc':0, # happy, excited
              'sur':5, 'fea':5, 'dis':5,'xxx':5, 'oth':5 # surprised, fearful, disgusted, indefinite, other
              }
 
-
-label_map = label_map_6
 configuration_label = "6_labels"
 
+
+
 if r_tuned:
-    model = RobertaForSequenceClassification.from_pretrained("../roBERTa_finetuning/roberta-iemocap/final-model")
-    tokenizer = RobertaTokenizer.from_pretrained("../roBERTa_finetuning/roberta-iemocap/final-model")
-    roberta ="roberta-fine-tuned"
+    model = AutoModelForSequenceClassification.from_pretrained("tae898/emoberta-base")
+    tokenizer = AutoTokenizer.from_pretrained("tae898/emoberta-base")
+    roberta = "emoberta-tae898"
+
 else:
     tokenizer = RobertaTokenizer.from_pretrained("roberta-base")
     model = RobertaModel.from_pretrained("roberta-base", add_pooling_layer=False)
@@ -173,3 +175,4 @@ with open(save_file_path, "wb") as f:
          None, None, None, videoAudio, trainVid, testVid),
         f
     )
+
