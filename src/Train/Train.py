@@ -11,6 +11,10 @@ from src.components.model import Transformer_Based_Model
 from src.Plot.Plot import *
 from src.Train.Losses import *
 
+import csv
+import os
+
+
 
 def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=None, train=False, writer=None,
                         gamma_1=1.0, gamma_2=1.0, gamma_3=1.0):
@@ -171,6 +175,23 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
         )
         writer.add_text("Hyperparameters", hparams_text, 0)
 
+    # === Save hyperparameters summary (only once per run) ===
+    hyperparams_path = os.path.join("results", "hyperparams.csv")
+    os.makedirs("results", exist_ok=True)
+    write_header = not os.path.exists(hyperparams_path)
+
+    with open(hyperparams_path, mode='a', newline='') as csvfile:
+        writer_hp = csv.writer(csvfile)
+        if write_header:
+            writer_hp.writerow([
+                "run_name", "model_dim", "dropout", "lr", "weight_decay", "batch_size",
+                "n_head", "n_epochs", "temp", "gamma_1", "gamma_2", "gamma_3", "modality"
+            ])
+        writer_hp.writerow([
+            run_name, model_dimension, dropout, lr, weight_decay, batch_size,
+            n_head, n_epochs, temp, gamma_1, gamma_2, gamma_3, modality
+        ])
+
     model = Transformer_Based_Model(
         dataset=train_loader,
         input_dimension=input_dim,
@@ -208,11 +229,13 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
         logs_eval['acc'].append(eval_acc)
         logs_eval['fscore'].append(eval_fscore)
 
+
         for key in logs_train:
             if key in losses:
                 logs_train[key].append(losses[key].item())
             else:
                 logs_train[key].append(0.0)  # Handle missing keys appropriately
+
 
         if not return_val_score:
             print(f"Epoch: {e + 1}/{n_epochs}")
@@ -225,6 +248,44 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
         if writer:
             # Log confusion matrix for eval phase
             log_confusion_matrix(writer, eval_labels, eval_preds, e, "val" if return_val_score else "test")
+
+        # === Save results to CSV ===
+        csv_dir = "results"
+        os.makedirs(csv_dir, exist_ok=True)
+        csv_path = os.path.join(csv_dir, f"{run_name}_log.csv")
+
+        write_header = not os.path.exists(csv_path)
+        with open(csv_path, mode='a', newline='') as csv_file:
+            writer_csv = csv.writer(csv_file)
+
+            if write_header:
+                header = [
+                    "epoch",
+                    "train_loss", "train_acc", "train_fscore",
+                    "eval_loss", "eval_acc", "eval_fscore",
+                    "loss_task", "loss_ce_t", "loss_ce_a", "loss_kl_t", "loss_kl_a", "total_loss"
+                ]
+                writer_csv.writerow(header)
+
+            # Estrai le singole loss (alcune potrebbero non essere presenti a seconda della modalità)
+            def get_loss_value(key):
+                return losses[key].item() if key in losses else 0.0
+
+            writer_csv.writerow([
+                e + 1,
+                train_loss,
+                train_acc,
+                train_fscore,
+                eval_loss,
+                eval_acc,
+                eval_fscore,
+                get_loss_value("loss_task"),
+                get_loss_value("loss_ce_t"),
+                get_loss_value("loss_ce_a"),
+                get_loss_value("loss_kl_t"),
+                get_loss_value("loss_kl_a"),
+                get_loss_value("loss")
+            ])
 
     if writer:
         # Log confusion matrix
