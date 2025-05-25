@@ -18,7 +18,7 @@ def runs(model_selection, run_name, dirpath, data):
         }
 
         fixed_params = {
-            "n_epochs": 2,
+            "n_epochs": 170,
             "model_dimension": 32,
             "n-head": 8,
             "tensorboard": True,
@@ -52,11 +52,27 @@ def runs(model_selection, run_name, dirpath, data):
 
     TrainSDT(**best_config, **fixed_params, run_name=run_name, return_val_score=False, dirpath=dirpath, data=data)
 
+def plot_all_metrics(result_directory, run_name):
+    logs_train, logs_eval, n_epochs, hyperparams = read_from_csv(dirpath=result_directory, run_name=run_name)
+
+    plotLosses(
+        logs=logs_train, epochs=n_epochs, save_dir=result_directory,
+        save_path=run_name, hyperparams=hyperparams
+    )
+    plotEval(
+        logs=logs_eval, epochs=n_epochs, phase="TEST", save_dir=result_directory,
+        save_path=run_name, hyperparams=hyperparams
+    )
+    plotTotalLoss(
+        logs_train=logs_train, logs_test=logs_eval, epochs=n_epochs,
+        save_dir=result_directory, save_path=run_name, hyperparams=hyperparams
+    )
+
 if __name__ == '__main__':
 
 
     model_selection = True
-    load_model = False
+    load_model = True
     run_name = "Test2"
 
     results = {
@@ -73,16 +89,11 @@ if __name__ == '__main__':
         3: "./data/iemocap_multimodal_features_6_labels_roberta-base_emobase.pkl"
     }
 
-    result_directory = f"./results/{results[0]}/"
+    result_directory = f"./results/{results[0]}"
     pickle = datasets[0]
 
     if load_model:
-        logs_train, logs_eval, n_epochs, hyperparams = read_from_csv(run_name)
-        plotLosses(logs=logs_train, epochs=n_epochs, save_path=run_name, hyperparams=hyperparams)
-        plotEval(logs=logs_eval, epochs=n_epochs, phase="TEST", save_path=run_name, hyperparams=hyperparams)
-        plotTotalLoss(logs_train=logs_train, logs_test=logs_eval, epochs=n_epochs, save_path=run_name, hyperparams=hyperparams)
+        plot_all_metrics(result_directory, run_name)
     else:
         runs(model_selection, run_name, dirpath=result_directory, data=pickle)
-
-
-
+        plot_all_metrics(result_directory, run_name)
