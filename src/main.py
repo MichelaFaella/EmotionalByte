@@ -23,7 +23,7 @@ def runs(model_selection, run_name, dirpath, data):
             "n-head": 8,
             "tensorboard": True,
             "batch_size": 16,
-            "modality": 'multi'
+            "modality": 'testo'
         }
 
         best_config, best_score, all_results = grid_search(param_grid, fixed_params, dirpath, data)
@@ -33,20 +33,20 @@ def runs(model_selection, run_name, dirpath, data):
 
     else:
         best_config = {
-            "temp": 3.0,
+            "temp": 1.5,
             "gamma_1": 1,
             "gamma_2": 1,
             "gamma_3": 1,
-            "lr": 0.005,
+            "lr": 0.001,
             "dropout": 0.001,
             "weight_decay": 0.001,
         }
         fixed_params = {
-            "n_epochs": 150,
+            "n_epochs": 40,
             "model_dimension": 32,
             "n-head": 8,
             "tensorboard": True,
-            "batch_size": 16,
+            "batch_size": 32,
             "modality": 'multi'
         }
 
@@ -71,9 +71,9 @@ def plot_all_metrics(result_directory, run_name):
 if __name__ == '__main__':
 
 
-    model_selection = True
-    load_model = True
-    run_name = "Test2"
+    model_selection = False
+    load_model = False
+    run_name = "Test7"
 
     results = {
         0 : "Emoberta_eGeMAPSv02",

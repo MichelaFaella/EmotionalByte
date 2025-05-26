@@ -4,7 +4,7 @@ import torch
 
 
 def save_hyperparams(dirpath, run_name, **kwargs):
-    csv_dir = dirpath + run_name
+    csv_dir = os.path.join(dirpath, run_name)
     hyperparams_path = os.path.join(csv_dir, "hyperparams.csv")
     os.makedirs(csv_dir, exist_ok=True)
     write_header = not os.path.exists(hyperparams_path)
@@ -37,7 +37,7 @@ def save_hyperparams(dirpath, run_name, **kwargs):
 
 
 def save_results(dirpath, run_name, epoch, losses, train_loss, train_acc, train_fscore, eval_loss, eval_acc, eval_fscore):
-    csv_dir = dirpath + run_name
+    csv_dir = os.path.join(dirpath, run_name)
     os.makedirs(csv_dir, exist_ok=True)
     csv_path = os.path.join(csv_dir, f"{run_name}_log.csv")
 
