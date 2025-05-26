@@ -25,7 +25,8 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
         if train:
             optimizer.zero_grad()
 
-        text_feature, audio_feature, qmask, umask, label, vid = data
+        #text_feature, audio_feature, qmask, umask, label, vid = data
+        text_feature, audio_feature, qmask, umask, label, bios_tensor, vid = data
 
         text_feature, audio_feature, qmask, umask, label = changeDimension(text_feature, audio_feature, label, umask, qmask)
                                                                                                                                                                                                                                                                     
@@ -39,6 +40,7 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
         elif model.modality=='multi':
             t_log_prob, a_log_prob, all_log_prob, all_prob, t_kl_log_prob, a_kl_log_prob, all_kl_prob = model(qmask,
                                                                                                               umask,
+                                                                                                              bios_tensor,
                                                                                                               text_feats=text_feature,
                                                                                                               audio_feats=audio_feature)
 
@@ -148,13 +150,15 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
     weight_decay = kwargs.get("weight_decay", 0.0001)
     batch_size = kwargs.get("batch_size", 16)
     modality = kwargs.get("modality", 'multi')
+    bios = kwargs.get("bios", True)
 
-    train_loader, val_loader, test_loader, design_loader = get_IEMOCAP_loaders(batch_size=batch_size, validRatio=0.2)
+    # have to decide if you want to use BIOS (bios=True/False)
+    train_loader, val_loader, test_loader, design_loader = get_IEMOCAP_loaders(batch_size=batch_size, validRatio=0.2, bios=bios)
 
     # Get a single batch from the training loader to determine input dimensions dynamically
     sample_batch = next(iter(train_loader))
     # Unpack only the necessary components from the batch (ignore others with underscores)
-    text_feature, audio_feature, _, _, _, _ = sample_batch
+    text_feature, audio_feature, _, _, _, _, _ = sample_batch
     # Compute text and audio feature dimensions using a helper function
     text_dim, audio_dim = getDimension(text_feature, audio_feature)
     input_dim = {'text': text_dim, 'audio': audio_dim, 'speaker': 2}
@@ -168,6 +172,7 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, run_name="exp1", r
             f"Model Dim: {model_dimension}, Dropout: {dropout}, LR: {lr}, "
             f"Weight Decay: {weight_decay}, Batch Size: {batch_size}, "
             f"Gamma: ({gamma_1}, {gamma_2}, {gamma_3}), Modality: {modality}"
+            f"BIOS{bios}"
         )
         writer.add_text("Hyperparameters", hparams_text, 0)
 

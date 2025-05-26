@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
-from components.SpeakerEmbedding import SpeakerEmbedding
+from components.SpeakerEmbedding import SpeakerEmbedding, SpeakerBiosEmbedding
 from components.PositionalEncoding import PositionalEncoding
 
 class PositionwiseFeedForward(nn.Module):
@@ -55,21 +55,21 @@ class TransformerEncoder(nn.Module):
         self.dim_model = dim_model
         self.layers = layers
         self.pos_emb = PositionalEncoding(dim_model)
-        self.speaker_emb = SpeakerEmbedding(dim_model)
+        self.speaker_emb = SpeakerBiosEmbedding(dim_model)
         self.transformer_layers = nn.ModuleList(
             [TransformerEncoderLayer(dim_model, heads, dim_ff, dropout)
              for _ in range(layers)]
         )
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, query_input, key_value_input, mask, speaker_id):
+    def forward(self, query_input, key_value_input, mask, speaker_id, bios_tensor=None):
         is_self_attention = query_input.equal(key_value_input)
 
         key_padding_mask = ~mask.bool()
 
         pos_emb = self.pos_emb(key_value_input, key_padding_mask)
-        speaker_emb = self.speaker_emb(speaker_id)
-
+        #speaker_emb = self.speaker_emb(speaker_id)
+        speaker_emb = self.speaker_emb(speaker_id, bios_tensor)
 
         # Application of positional and speaker embeddings
         key_value_input = pos_emb + speaker_emb + key_value_input
@@ -77,7 +77,7 @@ class TransformerEncoder(nn.Module):
         key_value_input = self.dropout(key_value_input)
 
         if not is_self_attention:
-            query_input = self.pos_emb(query_input, mask) + self.speaker_emb(speaker_id) + query_input
+            query_input = self.pos_emb(query_input, mask) + speaker_emb + query_input
             query_input = self.dropout(query_input)
 
         # Compute attention on layers

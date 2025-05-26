@@ -41,7 +41,7 @@ if __name__ == '__main__':
         }
 
         fixed_params = {
-            "n_epochs": 2,
+            "n_epochs": 10,
             "model_dimension": 32,
             "n-head": 8,
             "tensorboard": True,

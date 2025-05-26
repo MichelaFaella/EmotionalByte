@@ -79,7 +79,7 @@ class Transformer_Based_Model(nn.Module):
             self.all_output_layer = nn.Linear(model_dimension, n_classes)
 
 
-    def forward(self, speaker_ids, u_mask, **kwargs):
+    def forward(self, speaker_ids, u_mask, bios_tensor, **kwargs):
         """
         :param text_feats: Tensor
         :param audio_feats: Tensor
@@ -92,7 +92,7 @@ class Transformer_Based_Model(nn.Module):
             # Apply 1D convolution to map to model_dimension dimension
             text = self.conv_text(text_feats.transpose(1, 2)).transpose(1,2)
             # Intra-modal Transformers
-            t_t_transformer_out = self.t_t(query_input=text, key_value_input=text, mask=u_mask, speaker_id=speaker_ids)
+            t_t_transformer_out = self.t_t(query_input=text, key_value_input=text, mask=u_mask, speaker_id=speaker_ids, bios_tensor=bios_tensor)
             if self.modality == 'text':
                 Gt = self.tt_gate(t_t_transformer_out)
                 t_out = self.t_output_layer(Gt)
@@ -103,7 +103,7 @@ class Transformer_Based_Model(nn.Module):
             # Apply 1D convolution to map to model_dimension dimension
             audio = self.conv_audio(audio_feats.transpose(1, 2)).transpose(1,2)
             # Intra-modal Transformers
-            a_a_transformer_out = self.a_a(query_input=audio, key_value_input=audio, mask=u_mask, speaker_id=speaker_ids)
+            a_a_transformer_out = self.a_a(query_input=audio, key_value_input=audio, mask=u_mask, speaker_id=speaker_ids, bios_tensor=bios_tensor)
             if self.modality == 'audio':
                 Ga = self.aa_gate(a_a_transformer_out)
                 a_out = self.a_output_layer(Ga)
@@ -111,8 +111,8 @@ class Transformer_Based_Model(nn.Module):
                 return a_log_prob
         
         # Inter-modal Transformers
-        t_a_transformer_out = self.t_a(query_input=text, key_value_input=audio, mask=u_mask, speaker_id=speaker_ids)
-        a_t_transformer_out = self.a_t(query_input=audio, key_value_input=text, mask=u_mask, speaker_id=speaker_ids)
+        t_a_transformer_out = self.t_a(query_input=text, key_value_input=audio, mask=u_mask, speaker_id=speaker_ids, bios_tensor=bios_tensor)
+        a_t_transformer_out = self.a_t(query_input=audio, key_value_input=text, mask=u_mask, speaker_id=speaker_ids, bios_tensor=bios_tensor)
 
         # Unimodal-level Gated Fusion
         Gt = concat(

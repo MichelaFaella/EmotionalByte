@@ -6,7 +6,7 @@ from dataLoader import DataLoader as dl
 from collections import Counter
 from pathlib import Path
 
-data = "./data/iemocap_multimodal_features_6_labels_roberta_fine_tuned_eGeMAPSv02.pkl"
+data = "data/IEMOCAP/iemocap_multimodal_features_6_labels_roberta_fine_tuned_eGeMAPSv02.pkl"
 
 def splitDataset(ds, vaildRatio):
     
@@ -17,9 +17,9 @@ def splitDataset(ds, vaildRatio):
     
     return train_dataset, val_dataset
 
-def get_IEMOCAP_loaders(batch_size, validRatio):
+def get_IEMOCAP_loaders(batch_size, validRatio, bios=False):
     # Create dataset for training
-    dataset, test_set = getIEMOCAP()
+    dataset, test_set = getIEMOCAP(bios)
     train_set, val_set = splitDataset(dataset, validRatio)
 
     tr_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, collate_fn=dataset.collate_fn)
@@ -29,10 +29,15 @@ def get_IEMOCAP_loaders(batch_size, validRatio):
 
     return tr_loader, val_loader, test_loader,design_loader
 
-def getIEMOCAP():
-    # Create dataset for training
-    dataset = dl.IEMOCAPDataset(data, train=True)
-    testset = dl.IEMOCAPDataset(data, train=False)
+def getIEMOCAP(bios=False):
+    # Create dataset for training 
+    if bios == False: 
+        dataset = dl.IEMOCAPDataset(data, train=True)
+        testset = dl.IEMOCAPDataset(data, train=False)
+    # Create dataset for training with biosERC
+    else: 
+        dataset = dl.IEMOCAPDataset(data, speaker_bios_path="src/biosERC/speaker_bios.pt", train=True)
+        testset = dl.IEMOCAPDataset(data, speaker_bios_path="src/biosERC/speaker_bios.pt", train=False)
 
     return dataset, testset
 
