@@ -1,0 +1,2 @@
+run_name,model_dim,dropout,lr,weight_decay,batch_size,n_head,n_epochs,temp,gamma_1,gamma_2,gamma_3,modality
+Test2,32,0.001,0.001,0.001,16,8,170,1.5,1.0,1.0,1.0,multi

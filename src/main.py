@@ -46,7 +46,7 @@ def runs(model_selection, run_name, dirpath, data):
             "model_dimension": 32,
             "n-head": 8,
             "tensorboard": True,
-            "batch_size": 32,
+            "batch_size": 16,
             "modality": 'multi'
         }
 
