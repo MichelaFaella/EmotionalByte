@@ -8,23 +8,23 @@ def runs(model_selection, run_name, dirpath, data):
     if model_selection:
 
         param_grid = {
-            "temp": [1.5, 2.0],
+            "temp": [1.0],
             "gamma_1": [1.0],
             "gamma_2": [1.0],
-            "gamma_3": [1.0],
-            "lr": [0.001, 0.005],
-            "dropout": [0.001, 0.005],
-            "weight_decay": [0.001, 0.005],
+            "gamma_3": [1.0], # 0 if without self-distillation
+            "lr": [0.0005, 0.001],
+            "dropout": [0.0005, 0.001],
+            "weight_decay": [0.0005, 0.001 ],
+            "model_dimension": [32, 40],
         }
 
         fixed_params = {
-            "n_epochs": 170,
-            "model_dimension": 32,
+            "n_epochs": 100,
             "n-head": 8,
             "tensorboard": True,
-            "batch_size": 16,
-            "modality": 'text',
-            "bios": True
+            "batch_size": 32,
+            "modality": 'text', # multi, text, audio, text_sd, audio_sd
+            "bios": False
         }
 
         best_config, best_score, all_results = grid_search(param_grid, fixed_params, dirpath, data)
@@ -37,18 +37,18 @@ def runs(model_selection, run_name, dirpath, data):
             "temp": 1.5,
             "gamma_1": 1,
             "gamma_2": 1,
-            "gamma_3": 1,
+            "gamma_3": 1, # 0 if without self-distillation
             "lr": 0.001,
             "dropout": 0.001,
             "weight_decay": 0.001,
         }
         fixed_params = {
-            "n_epochs": 40,
+            "n_epochs": 2,
             "model_dimension": 32,
-            "n-head": 8,
+            "n-head": 4,
             "tensorboard": True,
             "batch_size": 16,
-            "modality": 'multi',
+            "modality": 'text_sd', # multi, text, audio, text_sd, audio_sd
             "bios": True
         }
 
@@ -75,13 +75,15 @@ if __name__ == '__main__':
 
     model_selection = False
     load_model = False
-    run_name = "Test7"
+    run_name = "TextTest_SD1"
 
     results = {
         0 : "Emoberta_eGeMAPSv02",
         1 : "Emoberta_emobase",
         2 : "RobertaBase_eGeMAPSv02",
-        3 : "RobertaBase_emobase"
+        3 : "RobertaBase_emobase",
+        4 : "Emoberta",
+        5 : "Chosen opensmile"
     }
 
     datasets = {
@@ -91,7 +93,7 @@ if __name__ == '__main__':
         3: "./data/iemocap_multimodal_features_6_labels_roberta-base_emobase.pkl"
     }
 
-    result_directory = f"./results/{results[0]}"
+    result_directory = f"./results/{results[4]}"
     pickle = datasets[0]
 
     if load_model:

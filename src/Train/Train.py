@@ -37,10 +37,10 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
                    range(len(umask))]  # Compute the real length of a sequence
 
         if model.modality=='text':
-            t_log_prob = model(qmask, umask, text_feats=text_feature)
+            t_log_prob = model(qmask, umask, None, text_feats=text_feature)
         elif model.modality=='audio':
-            a_log_prob = model(qmask, umask, audio_feats=audio_feature)
-        elif model.modality=='multi':
+            a_log_prob = model(qmask, umask, None, audio_feats=audio_feature)
+        elif model.modality in ['multi', 'text_sd', 'audio_sd']:
             t_log_prob, a_log_prob, all_log_prob, all_prob, t_kl_log_prob, a_kl_log_prob, all_kl_prob = model(qmask,
                                                                                                               umask,
                                                                                                               bios_tensor,
@@ -48,7 +48,7 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
                                                                                                               audio_feats=audio_feature)
 
         labels_ = label.view(-1)
-        if model.modality in ['multi', 'text']:
+        if model.modality in ['multi', 'text', 'text_sd', 'audio_sd']:
             t_lp = t_log_prob.view(-1, t_log_prob.size()[2])
             loss_ce_t = loss_fun(t_lp, labels_, umask)
             if model.modality=='text':
@@ -59,7 +59,7 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
                     'loss_ce_t': loss_ce_t,
                     'loss': loss
                 }
-        if model.modality in ['multi', 'audio']:
+        if model.modality in ['multi', 'audio', 'text_sd', 'audio_sd']:
             a_lp = a_log_prob.view(-1, a_log_prob.size()[2])
             loss_ce_a = loss_fun(a_lp, labels_, umask)
             if model.modality == 'audio':
@@ -70,7 +70,8 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
                     'loss_ce_a': loss_ce_a,
                     'loss': loss
                 }
-        if model.modality == 'multi':
+
+        if model.modality in ['multi', 'text_sd', 'audio_sd']:
             all_lp = all_log_prob.view(-1, all_log_prob.size()[2])               
             all_kl_p = all_kl_prob.view(-1, all_kl_prob.size()[2])
             loss_task = loss_fun(all_lp, labels_, umask)
@@ -79,8 +80,16 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
             a_kl_lp = a_kl_log_prob.view(-1, a_kl_log_prob.size()[2])
             loss_kl_a = kl_loss(a_kl_lp, all_kl_p, umask)
             loss = gamma_1 * loss_task + gamma_2 * (loss_ce_t + loss_ce_a) + gamma_3 * (loss_kl_t + loss_kl_a)
-            lp_ = all_prob.view(-1, all_prob.size()[2])      # Get probabilities for each class
-            # Define losses to return
+            if model.modality == 'multi':
+                lp_ = all_prob.view(-1, all_prob.size()[2])      # Get probabilities for each class
+            elif model.modality == 'text_sd':
+                t_lp = t_log_prob.view(-1, t_log_prob.size()[2])
+                lp_ = t_lp
+            else:
+                a_lp = a_log_prob.view(-1, a_log_prob.size()[2])
+                lp_ = a_lp
+
+                # Define losses to return
             losses_ = {
                 'loss_task': loss_task,
                 'loss_ce_t': loss_ce_t,

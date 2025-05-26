@@ -1,2 +1,0 @@
-run_name,model_dim,dropout,lr,weight_decay,batch_size,n_head,n_epochs,temp,gamma_1,gamma_2,gamma_3,modality
-Test3,16,0.001,0.0008,1e-05,32,8,40,1.5,1,1,1,text
