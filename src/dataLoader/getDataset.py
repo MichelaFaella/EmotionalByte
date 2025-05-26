@@ -8,6 +8,7 @@ from pathlib import Path
 from math import isclose
 
 
+
 def splitDataset(ds, vaildRatio):
     
     size = len(ds)
@@ -17,9 +18,9 @@ def splitDataset(ds, vaildRatio):
     
     return train_dataset, val_dataset
 
-def get_IEMOCAP_loaders(data, batch_size, validRatio):
+def get_IEMOCAP_loaders(data, batch_size, validRatio, bios=False):
     # Create dataset for training
-    dataset, test_set = getIEMOCAP(data)
+    dataset, test_set = getIEMOCAP(data, bios)
     train_set, val_set = splitDataset(dataset, validRatio)
 
     tr_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, collate_fn=dataset.collate_fn)
@@ -29,10 +30,15 @@ def get_IEMOCAP_loaders(data, batch_size, validRatio):
 
     return tr_loader, val_loader, test_loader,design_loader
 
-def getIEMOCAP(data):
+def getIEMOCAP(data, bios=False):
     # Create dataset for training
-    dataset = dl.IEMOCAPDataset(data, train=True)
-    testset = dl.IEMOCAPDataset(data, train=False)
+    if bios == False:
+        dataset = dl.IEMOCAPDataset(data, train=True)
+        testset = dl.IEMOCAPDataset(data, train=False)
+    # Create dataset for training with biosERC
+    else:
+        dataset = dl.IEMOCAPDataset(data, speaker_bios_path="src/biosERC/speaker_bios.pt", train=True)
+        testset = dl.IEMOCAPDataset(data, speaker_bios_path="src/biosERC/speaker_bios.pt", train=False)
 
     return dataset, testset
 
