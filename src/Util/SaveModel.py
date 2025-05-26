@@ -21,6 +21,7 @@ def save_hyperparams(dirpath, run_name, **kwargs):
     gamma_2 = kwargs.get("Gamma2", 0.1)
     gamma_3 = kwargs.get("Gamma3", 0.1)
     modality = kwargs.get("Modality", "multi")
+    bios = kwargs.get("Bios", False)
 
 
     with open(hyperparams_path, mode='a', newline='') as csvfile:
@@ -28,11 +29,11 @@ def save_hyperparams(dirpath, run_name, **kwargs):
         if write_header:
             writer_hp.writerow([
                 "run_name", "model_dim", "dropout", "lr", "weight_decay", "batch_size",
-                "n_head", "n_epochs", "temp", "gamma_1", "gamma_2", "gamma_3", "modality"
+                "n_head", "n_epochs", "temp", "gamma_1", "gamma_2", "gamma_3", "modality", "bios"
             ])
         writer_hp.writerow([
             run_name, model_dimension, dropout, lr, weight_decay, batch_size,
-            n_head, n_epochs, temp, gamma_1, gamma_2, gamma_3, modality
+            n_head, n_epochs, temp, gamma_1, gamma_2, gamma_3, modality, bios
         ])
 
 

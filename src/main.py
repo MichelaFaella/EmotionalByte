@@ -23,7 +23,8 @@ def runs(model_selection, run_name, dirpath, data):
             "n-head": 8,
             "tensorboard": True,
             "batch_size": 16,
-            "modality": 'testo'
+            "modality": 'text',
+            "bios": True
         }
 
         best_config, best_score, all_results = grid_search(param_grid, fixed_params, dirpath, data)
@@ -47,7 +48,8 @@ def runs(model_selection, run_name, dirpath, data):
             "n-head": 8,
             "tensorboard": True,
             "batch_size": 16,
-            "modality": 'multi'
+            "modality": 'multi',
+            "bios": True
         }
 
     TrainSDT(**best_config, **fixed_params, run_name=run_name, return_val_score=False, dirpath=dirpath, data=data)

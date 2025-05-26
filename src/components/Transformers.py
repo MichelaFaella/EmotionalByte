@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
-from components.SpeakerEmbedding import SpeakerEmbedding, SpeakerBiosEmbedding
+from components.SpeakerEmbedding import SpeakerBiosEmbedding
 from components.PositionalEncoding import PositionalEncoding
 
 class PositionwiseFeedForward(nn.Module):
@@ -68,7 +68,6 @@ class TransformerEncoder(nn.Module):
         key_padding_mask = ~mask.bool()
 
         pos_emb = self.pos_emb(key_value_input, key_padding_mask)
-        #speaker_emb = self.speaker_emb(speaker_id)
         speaker_emb = self.speaker_emb(speaker_id, bios_tensor)
 
         # Application of positional and speaker embeddings
