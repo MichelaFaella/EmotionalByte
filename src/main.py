@@ -12,10 +12,10 @@ def runs(model_selection, run_name, dirpath, data):
             "gamma_1": [1.0],
             "gamma_2": [1.0],
             "gamma_3": [1.0], # 0 if without self-distillation
-            "lr": [0.0005, 0.001],
-            "dropout": [0.0005, 0.001],
-            "weight_decay": [0.0005, 0.001 ],
-            "model_dimension": [32, 40],
+            "lr": [0.00005, 0.0001],
+            "dropout": [0.000005, 0.0001],
+            "weight_decay": [0.00005, 0.0001],
+            "model_dimension": [32, 40, 48],
         }
 
         fixed_params = {
@@ -34,20 +34,20 @@ def runs(model_selection, run_name, dirpath, data):
 
     else:
         best_config = {
-            "temp": 1.5,
+            "temp": 1.0,
             "gamma_1": 1,
             "gamma_2": 1,
             "gamma_3": 1, # 0 if without self-distillation
-            "lr": 0.001,
-            "dropout": 0.001,
-            "weight_decay": 0.001,
+            "lr": 0.0001,
+            "dropout": 0.0001,
+            "weight_decay": 0.0001,
         }
         fixed_params = {
-            "n_epochs": 2,
-            "model_dimension": 32,
+            "n_epochs": 100,
+            "model_dimension": 40,
             "n-head": 4,
             "tensorboard": True,
-            "batch_size": 16,
+            "batch_size": 32,
             "modality": 'text_sd', # multi, text, audio, text_sd, audio_sd
             "bios": True
         }
@@ -73,28 +73,19 @@ def plot_all_metrics(result_directory, run_name):
 if __name__ == '__main__':
 
 
-    model_selection = False
+    model_selection = True
     load_model = False
-    run_name = "TextTest_SD1"
+    run_name = "TextSD_GS_Test2"
 
     results = {
         0 : "Emoberta_eGeMAPSv02",
-        1 : "Emoberta_emobase",
-        2 : "RobertaBase_eGeMAPSv02",
-        3 : "RobertaBase_emobase",
-        4 : "Emoberta",
-        5 : "Chosen opensmile"
+        1 : "Emoberta",
+        2 : "eGeMAPSv02"
     }
 
-    datasets = {
-        0: "./data/iemocap_multimodal_features_6_labels_emoberta-tae898_eGeMAPSv02.pkl",
-        1: "./data/iemocap_multimodal_features_6_labels_emoberta-tae898_emobase.pkl",
-        2: "./data/iemocap_multimodal_features_6_labels_roberta-base_eGeMAPSv02.pkl",
-        3: "./data/iemocap_multimodal_features_6_labels_roberta-base_emobase.pkl"
-    }
+    result_directory = f"./results/{results[2]}"
+    pickle = "./data/iemocap_multimodal_features_6_labels_emoberta-tae898_eGeMAPSv02.pkl",
 
-    result_directory = f"./results/{results[4]}"
-    pickle = datasets[0]
 
     if load_model:
         plot_all_metrics(result_directory, run_name)
