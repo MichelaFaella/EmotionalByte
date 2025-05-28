@@ -8,19 +8,19 @@ def runs(model_selection, run_name, dirpath, data):
     if model_selection:
 
         param_grid = {
-            "temp": [1.0],
+            "temp": [2.0, 2.5],
             "gamma_1": [1.0],
             "gamma_2": [1.0],
             "gamma_3": [1.0], # 0 if without self-distillation
-            "lr": [0.00005, 0.0001],
-            "dropout": [0.000005, 0.0001],
-            "weight_decay": [0.00005, 0.0001],
-            "model_dimension": [32, 40, 48],
+            "lr": [0.0001, 0.0005],
+            "dropout": [0.0001, 0.005],
+            "weight_decay": [0.0001, 0.005],
+            "model_dimension": [16],
         }
 
         fixed_params = {
             "n_epochs": 100,
-            "n-head": 8,
+            "n_head": 8,
             "tensorboard": True,
             "batch_size": 32,
             "modality": 'text', # multi, text, audio, text_sd, audio_sd
@@ -34,22 +34,22 @@ def runs(model_selection, run_name, dirpath, data):
 
     else:
         best_config = {
-            "temp": 1.0,
+            "temp": 0.7,
             "gamma_1": 1,
             "gamma_2": 1,
-            "gamma_3": 1, # 0 if without self-distillation
-            "lr": 0.0001,
-            "dropout": 0.0001,
-            "weight_decay": 0.0001,
+            "gamma_3": 1,
+            "lr": 0.0008,
+            "dropout": 0.01,
+            "weight_decay": 0.01
         }
         fixed_params = {
-            "n_epochs": 100,
-            "model_dimension": 40,
-            "n-head": 4,
+            "n_epochs": 200,
+            "model_dimension": 144,
+            "n_head": 18,
             "tensorboard": True,
             "batch_size": 32,
-            "modality": 'text_sd', # multi, text, audio, text_sd, audio_sd
-            "bios": True
+            "modality": 'multi', # multi, text, audio, text_sd, audio_sd
+            "bios": False
         }
 
     TrainSDT(**best_config, **fixed_params, run_name=run_name, return_val_score=False, dirpath=dirpath, data=data)
@@ -73,9 +73,9 @@ def plot_all_metrics(result_directory, run_name):
 if __name__ == '__main__':
 
 
-    model_selection = True
+    model_selection = False
     load_model = False
-    run_name = "TextSD_GS_Test2"
+    run_name = ("MultimodalTest17c")
 
     results = {
         0 : "Emoberta_eGeMAPSv02",
@@ -83,8 +83,8 @@ if __name__ == '__main__':
         2 : "eGeMAPSv02"
     }
 
-    result_directory = f"./results/{results[2]}"
-    pickle = "./data/iemocap_multimodal_features_6_labels_emoberta-tae898_eGeMAPSv02.pkl",
+    result_directory = f"./results/{results[0]}"
+    pickle = "./data/iemocap_multimodal_features_6_labels_emoberta-tae898_eGeMAPSv02.pkl"
 
 
     if load_model:
