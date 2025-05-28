@@ -1,2 +1,0 @@
-run_name,model_dim,dropout,lr,weight_decay,batch_size,n_head,n_epochs,temp,gamma_1,gamma_2,gamma_3,modality,bios
-MultimodalTest17b,144,0.01,0.0005,0.01,32,18,200,0.7,1,1,1,multi,False

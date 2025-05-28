@@ -1,7 +1,7 @@
 from Train.Train import TrainSDT
 from Train.Gridsearch import grid_search
-from Util.SaveModel import read_from_csv
-from Util.Plot import plotLosses, plotTotalLoss, plotEval
+from Util.SaveModel import *
+from Util.Plot import plotLosses, plotTotalLoss, plotEval, confusionMatrix
 
 
 def runs(model_selection, run_name, dirpath, data):
@@ -38,16 +38,16 @@ def runs(model_selection, run_name, dirpath, data):
             "gamma_1": 1,
             "gamma_2": 1,
             "gamma_3": 1,
-            "lr": 0.0008,
+            "lr": 0.0005,
             "dropout": 0.01,
             "weight_decay": 0.01
         }
         fixed_params = {
-            "n_epochs": 200,
+            "n_epochs": 150,
             "model_dimension": 144,
             "n_head": 18,
             "tensorboard": True,
-            "batch_size": 32,
+            "batch_size": 256,
             "modality": 'multi', # multi, text, audio, text_sd, audio_sd
             "bios": False
         }
@@ -55,7 +55,10 @@ def runs(model_selection, run_name, dirpath, data):
     TrainSDT(**best_config, **fixed_params, run_name=run_name, return_val_score=False, dirpath=dirpath, data=data)
 
 def plot_all_metrics(result_directory, run_name):
-    logs_train, logs_eval, n_epochs, hyperparams = read_from_csv(dirpath=result_directory, run_name=run_name)
+    logs_train, logs_eval, n_epochs = load_results(dirpath=result_directory, run_name=run_name)
+    hyperparams = load_hyperparams(dirpath=result_directory, run_name=run_name)
+    labels_preds = load_label_pred(dirpath=result_directory, run_name=run_name)
+    #labels_preds = None
 
     plotLosses(
         logs=logs_train, epochs=n_epochs, save_dir=result_directory,
@@ -70,12 +73,29 @@ def plot_all_metrics(result_directory, run_name):
         save_dir=result_directory, save_path=run_name, hyperparams=hyperparams
     )
 
+    if labels_preds is not None:
+        confusionMatrix(
+            labels_preds['test']['true'],
+            labels_preds['test']['pred'],
+            dir=result_directory,
+            save_path=run_name,
+            title_suffix="(Test)"
+        )
+        confusionMatrix(
+            labels_preds['train']['true'],
+            labels_preds['train']['pred'],
+            dir=result_directory,
+            save_path=run_name,
+            title_suffix="(Training)"
+        )
+
+
 if __name__ == '__main__':
 
 
     model_selection = False
     load_model = False
-    run_name = ("MultimodalTest17c")
+    run_name = ("Multimodal_2")
 
     results = {
         0 : "Emoberta_eGeMAPSv02",

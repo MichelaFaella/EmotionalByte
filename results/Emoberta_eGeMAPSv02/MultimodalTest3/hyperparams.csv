@@ -1,2 +1,0 @@
-run_name,model_dim,dropout,lr,weight_decay,batch_size,n_head,n_epochs,temp,gamma_1,gamma_2,gamma_3,modality,bios
-Text_SD_Test2,40,0.01,0.001,0.01,128,8,100,2.5,1,1,1,multi,False

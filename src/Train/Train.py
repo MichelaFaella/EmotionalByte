@@ -1,3 +1,4 @@
+from collections import Counter
 from itertools import product
 
 import torch
@@ -6,19 +7,19 @@ from tensorboardX import SummaryWriter
 import torch.optim as optim
 from sklearn.metrics import f1_score, accuracy_score
 
-from dataLoader.getDataset import get_IEMOCAP_loaders, lossWeightsNormalized, getDataName, getDimension, changeDimension
+from dataLoader.getDataset import *
 from components.model import Transformer_Based_Model
 from Util.Plot import *
 from Train.Losses import *
 
 from Util.SaveModel import *
 
-from Util.SaveModel import save_hyperparams, save_results
 
 
 def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=None, train=False, writer=None,
                         gamma_1=1.0, gamma_2=1.0, gamma_3=1.0):
     preds, losses, labels, masks = [], [], [], []
+
     # assert not train or optimizer != None
     if train:
         model.train()
@@ -166,6 +167,11 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, data="", run_name=
 
     train_loader, val_loader, test_loader, design_loader = get_IEMOCAP_loaders(data=data, batch_size=batch_size, validRatio=0.2, bios=bios)
 
+    counter_tr = Counter()
+    counter_ts = Counter()
+    count_labels(counter_tr, counter_ts, design_loader, test_loader)
+
+
     # Get a single batch from the training loader to determine input dimensions dynamically
     sample_batch = next(iter(train_loader))
     # Unpack only the necessary components from the batch (ignore others with underscores)
@@ -266,10 +272,13 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, data="", run_name=
             # Log confusion matrix for eval phase
             log_confusion_matrix(writer, eval_labels, eval_preds, e, "val" if return_val_score else "test")
 
+    save_preds_labels(dirpath, run_name, train_labels, train_preds, eval_labels, eval_preds)
     if writer:
         # Log confusion matrix
         log_confusion_matrix(writer, eval_labels, eval_preds, e, "val" if return_val_score else "test")
         writer.close()
+
+
 
     if return_val_score:
         return best_val_fscore

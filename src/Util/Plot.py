@@ -101,14 +101,27 @@ def plotTotalLoss(logs_train, logs_test, epochs, save_dir, save_path="", hyperpa
     ShowOrSavePlot(os.path.join(save_dir, save_path), f"TOTAL_loss")
     plt.close(fig_loss)
 
-def confusionMatrix(labels, preds, dir, save_path=""):
+def confusionMatrix(labels, preds, dir, save_path="", title_suffix=""):
+    # Conversione sicura in lista (compatibile con Tensor, NumPy, o lista pura)
+    if not isinstance(labels, list):
+        labels = labels.tolist()
+    if not isinstance(preds, list):
+        preds = preds.tolist()
+
+    # Calcolo matrice di confusione
     cfm = confusion_matrix(labels, preds)
+
+    # Etichette leggibili (puoi personalizzarle ulteriormente)
     labels_name = ['hap\nexc', 'sad', 'ang', 'neu', 'fru', 'sur, fea\ndis, oth']
+
+    # Visualizzazione
     disp = ConfusionMatrixDisplay(cfm, display_labels=labels_name)
-    plt.figure(figsize=(15, 15))
-    disp.plot(cmap='Blues')
+    plt.figure(figsize=(8, 8))
+    disp.plot(cmap='Blues', values_format='d')
+    plt.title(f"Confusion Matrix {title_suffix}".strip())
     plt.tight_layout()
-    ShowOrSavePlot(os.path.join(dir, save_path), f"Confusion Matrix")
+
+    ShowOrSavePlot(os.path.join(dir, save_path), f"Confusion Matrix {title_suffix}")
 
 
 def ShowOrSavePlot(path: str = None, filename: str = "img"):
