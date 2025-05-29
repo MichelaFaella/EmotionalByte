@@ -32,7 +32,7 @@ This project reimplements and extends the **Self-Distillation Transformer (SDT)*
 - Speaker personality embeddings derived from LLMs  
 - Modular PyTorch pipeline based on the IEMOCAP dataset  
 <p align = "center">
-  <img src = "report/architecture.png" width="900" alt="Logo">
+  <img src = "report/architecture.jpg" width="900" alt="Logo">
 </p>
 ---
 
