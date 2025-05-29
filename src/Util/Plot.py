@@ -13,7 +13,7 @@ def log_confusion_matrix(writer, labels, preds, epoch, phase):
 
 
 
-def plotLosses(logs, epochs, save_path="", hyperparams=None):
+def plotLosses(logs, epochs, save_dir, save_path="", hyperparams=None):
     epoch_range = list(range(1, epochs + 1))
 
     # --- Task and Cross-Entropy Losses ---
@@ -32,7 +32,7 @@ def plotLosses(logs, epochs, save_path="", hyperparams=None):
                    ha='center', va='top', transform=ax_ce.transAxes, fontsize=9)
 
     fig_ce.tight_layout()
-    ShowOrSavePlot("results/" + save_path, "TRAIN_loss_ce")
+    ShowOrSavePlot(os.path.join(save_dir, save_path), "TRAIN_loss_ce")
     plt.close(fig_ce)
 
     # --- KL Divergence Losses ---
@@ -50,12 +50,12 @@ def plotLosses(logs, epochs, save_path="", hyperparams=None):
                    ha='center', va='top', transform=ax_kl.transAxes, fontsize=9)
 
     fig_kl.tight_layout()
-    ShowOrSavePlot("results/" + save_path, "TRAIN_loss_kl")
+    ShowOrSavePlot(os.path.join(save_dir, save_path), "TRAIN_loss_kl")
     plt.close(fig_kl)
 
 
 
-def plotEval(logs, epochs, phase, save_path="", hyperparams=None):
+def plotEval(logs, epochs, phase, save_dir, save_path="", hyperparams=None):
     """
     phase: should be either "VALIDATION" or "TEST"
     """
@@ -77,11 +77,11 @@ def plotEval(logs, epochs, phase, save_path="", hyperparams=None):
                     ha='center', va='top', transform=ax_eval.transAxes, fontsize=9)
 
     fig_eval.tight_layout()
-    ShowOrSavePlot("results/" + save_path, f"{phase}_eval")
+    ShowOrSavePlot(os.path.join(save_dir, save_path), f"{phase}_eval")
     plt.close(fig_eval)
 
 
-def plotTotalLoss(logs_train, logs_test, epochs, save_path="", hyperparams=None):
+def plotTotalLoss(logs_train, logs_test, epochs, save_dir, save_path="", hyperparams=None):
     epoch_range = list(range(1, epochs + 1))
 
     fig_loss, ax_loss = plt.subplots(figsize=(10, 4))
@@ -98,17 +98,30 @@ def plotTotalLoss(logs_train, logs_test, epochs, save_path="", hyperparams=None)
                       ha='center', va='top', transform=ax_loss.transAxes, fontsize=9)
 
     fig_loss.tight_layout()
-    ShowOrSavePlot("results/" + save_path, f"TOTAL_loss")
+    ShowOrSavePlot(os.path.join(save_dir, save_path), f"TOTAL_loss")
     plt.close(fig_loss)
 
-def confusionMatrix(labels, preds, save_path=""):
+def confusionMatrix(labels, preds, dir, save_path="", title_suffix=""):
+    # Conversione sicura in lista (compatibile con Tensor, NumPy, o lista pura)
+    if not isinstance(labels, list):
+        labels = labels.tolist()
+    if not isinstance(preds, list):
+        preds = preds.tolist()
+
+    # Calcolo matrice di confusione
     cfm = confusion_matrix(labels, preds)
+
+    # Etichette leggibili (puoi personalizzarle ulteriormente)
     labels_name = ['hap\nexc', 'sad', 'ang', 'neu', 'fru', 'sur, fea\ndis, oth']
+
+    # Visualizzazione
     disp = ConfusionMatrixDisplay(cfm, display_labels=labels_name)
-    plt.figure(figsize=(15, 15))
-    disp.plot(cmap='Blues')
+    plt.figure(figsize=(8, 8))
+    disp.plot(cmap='Blues', values_format='d')
+    plt.title(f"Confusion Matrix {title_suffix}".strip())
     plt.tight_layout()
-    ShowOrSavePlot("results/" + save_path, f"Confusion Matrix")
+
+    ShowOrSavePlot(os.path.join(dir, save_path), f"Confusion Matrix {title_suffix}")
 
 
 def ShowOrSavePlot(path: str = None, filename: str = "img"):

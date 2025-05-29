@@ -1,3 +1,4 @@
+from collections import Counter
 from itertools import product
 
 import torch
@@ -6,19 +7,19 @@ from tensorboardX import SummaryWriter
 import torch.optim as optim
 from sklearn.metrics import f1_score, accuracy_score
 
-from dataLoader.getDataset import get_IEMOCAP_loaders, lossWeightsNormalized, getDataName, getDimension, changeDimension
+from dataLoader.getDataset import *
 from components.model import Transformer_Based_Model
 from Util.Plot import *
 from Train.Losses import *
 
 from Util.SaveModel import *
 
-from Util.SaveModel import save_hyperparams, save_results
 
 
 def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=None, train=False, writer=None,
                         gamma_1=1.0, gamma_2=1.0, gamma_3=1.0):
     preds, losses, labels, masks = [], [], [], []
+
     # assert not train or optimizer != None
     if train:
         model.train()
@@ -29,7 +30,7 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
         if train:
             optimizer.zero_grad()
 
-        text_feature, audio_feature, qmask, umask, label, vid = data
+        text_feature, audio_feature, qmask, umask, label, bios_tensor, vid = data
 
         text_feature, audio_feature, qmask, umask, label = changeDimension(text_feature, audio_feature, label, umask, qmask)
                                                                                                                                                                                                                                                                     
@@ -37,17 +38,18 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
                    range(len(umask))]  # Compute the real length of a sequence
 
         if model.modality=='text':
-            t_log_prob = model(qmask, umask, text_feats=text_feature)
+            t_log_prob = model(qmask, umask, None, text_feats=text_feature)
         elif model.modality=='audio':
-            a_log_prob = model(qmask, umask, audio_feats=audio_feature)
-        elif model.modality=='multi':
+            a_log_prob = model(qmask, umask, None, audio_feats=audio_feature)
+        elif model.modality in ['multi', 'text_sd', 'audio_sd']:
             t_log_prob, a_log_prob, all_log_prob, all_prob, t_kl_log_prob, a_kl_log_prob, all_kl_prob = model(qmask,
                                                                                                               umask,
+                                                                                                              bios_tensor,
                                                                                                               text_feats=text_feature,
                                                                                                               audio_feats=audio_feature)
 
         labels_ = label.view(-1)
-        if model.modality in ['multi', 'text']:
+        if model.modality in ['multi', 'text', 'text_sd', 'audio_sd']:
             t_lp = t_log_prob.view(-1, t_log_prob.size()[2])
             loss_ce_t = loss_fun(t_lp, labels_, umask)
             if model.modality=='text':
@@ -58,7 +60,7 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
                     'loss_ce_t': loss_ce_t,
                     'loss': loss
                 }
-        if model.modality in ['multi', 'audio']:
+        if model.modality in ['multi', 'audio', 'text_sd', 'audio_sd']:
             a_lp = a_log_prob.view(-1, a_log_prob.size()[2])
             loss_ce_a = loss_fun(a_lp, labels_, umask)
             if model.modality == 'audio':
@@ -69,7 +71,8 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
                     'loss_ce_a': loss_ce_a,
                     'loss': loss
                 }
-        if model.modality == 'multi':
+
+        if model.modality in ['multi', 'text_sd', 'audio_sd']:
             all_lp = all_log_prob.view(-1, all_log_prob.size()[2])               
             all_kl_p = all_kl_prob.view(-1, all_kl_prob.size()[2])
             loss_task = loss_fun(all_lp, labels_, umask)
@@ -78,8 +81,16 @@ def train_or_eval_model(model, loss_fun, kl_loss, dataloader, epoch, optimizer=N
             a_kl_lp = a_kl_log_prob.view(-1, a_kl_log_prob.size()[2])
             loss_kl_a = kl_loss(a_kl_lp, all_kl_p, umask)
             loss = gamma_1 * loss_task + gamma_2 * (loss_ce_t + loss_ce_a) + gamma_3 * (loss_kl_t + loss_kl_a)
-            lp_ = all_prob.view(-1, all_prob.size()[2])      # Get probabilities for each class
-            # Define losses to return
+            if model.modality == 'multi':
+                lp_ = all_prob.view(-1, all_prob.size()[2])      # Get probabilities for each class
+            elif model.modality == 'text_sd':
+                t_lp = t_log_prob.view(-1, t_log_prob.size()[2])
+                lp_ = t_lp
+            else:
+                a_lp = a_log_prob.view(-1, a_log_prob.size()[2])
+                lp_ = a_lp
+
+                # Define losses to return
             losses_ = {
                 'loss_task': loss_task,
                 'loss_ce_t': loss_ce_t,
@@ -152,13 +163,19 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, data="", run_name=
     weight_decay = kwargs.get("weight_decay", 0.0001)
     batch_size = kwargs.get("batch_size", 16)
     modality = kwargs.get("modality", 'multi')
+    bios = kwargs.get("bios", True)
 
-    train_loader, val_loader, test_loader, design_loader = get_IEMOCAP_loaders(data=data, batch_size=batch_size, validRatio=0.2)
+    train_loader, val_loader, test_loader, design_loader = get_IEMOCAP_loaders(data=data, batch_size=batch_size, validRatio=0.2, bios=bios)
+
+    counter_tr = Counter()
+    counter_ts = Counter()
+    count_labels(counter_tr, counter_ts, design_loader, test_loader)
+
 
     # Get a single batch from the training loader to determine input dimensions dynamically
     sample_batch = next(iter(train_loader))
     # Unpack only the necessary components from the batch (ignore others with underscores)
-    text_feature, audio_feature, _, _, _, _ = sample_batch
+    text_feature, audio_feature, _, _, _, _, _ = sample_batch
     # Compute text and audio feature dimensions using a helper function
     text_dim, audio_dim = getDimension(text_feature, audio_feature)
     input_dim = {'text': text_dim, 'audio': audio_dim, 'speaker': 2}
@@ -172,6 +189,7 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, data="", run_name=
             f"Model Dim: {model_dimension}, Dropout: {dropout}, LR: {lr}, "
             f"Weight Decay: {weight_decay}, Batch Size: {batch_size}, "
             f"Gamma: ({gamma_1}, {gamma_2}, {gamma_3}), Modality: {modality}"
+            f"BIOS{bios}"
         )
         writer.add_text("Hyperparameters", hparams_text, 0)
 
@@ -189,7 +207,8 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, data="", run_name=
             "Gamma1" : gamma_1,
             "Gamma2" : gamma_2,
             "Gamma3" : gamma_3,
-            "Modality": modality
+            "Modality": modality,
+            "Bios": bios
         }
 
         save_hyperparams(dirpath, run_name, **hparams_text)
@@ -233,13 +252,11 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, data="", run_name=
         logs_eval['acc'].append(eval_acc)
         logs_eval['fscore'].append(eval_fscore)
 
-
         for key in logs_train:
             if key in losses:
                 logs_train[key].append(losses[key].item())
             else:
                 logs_train[key].append(0.0)  # Handle missing keys appropriately
-
 
         if not return_val_score:
             print(f"Epoch: {e + 1}/{n_epochs}")
@@ -255,12 +272,13 @@ def TrainSDT(temp=1.0, gamma_1=0.1, gamma_2=0.1, gamma_3=0.1, data="", run_name=
             # Log confusion matrix for eval phase
             log_confusion_matrix(writer, eval_labels, eval_preds, e, "val" if return_val_score else "test")
 
-
-
+    save_preds_labels(dirpath, run_name, train_labels, train_preds, eval_labels, eval_preds)
     if writer:
         # Log confusion matrix
         log_confusion_matrix(writer, eval_labels, eval_preds, e, "val" if return_val_score else "test")
         writer.close()
+
+
 
     if return_val_score:
         return best_val_fscore

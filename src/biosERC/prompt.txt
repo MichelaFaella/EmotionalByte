@@ -1,0 +1,6 @@
+Given this conversation between speakers:
+
+{conversation}
+
+In overall above conversation, what do you think about the characteristics of speaker {speaker_name}? 
+(Note: provide an answer within 250 words)

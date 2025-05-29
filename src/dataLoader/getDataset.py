@@ -8,6 +8,7 @@ from pathlib import Path
 from math import isclose
 
 
+
 def splitDataset(ds, vaildRatio):
     
     size = len(ds)
@@ -17,24 +18,61 @@ def splitDataset(ds, vaildRatio):
     
     return train_dataset, val_dataset
 
-def get_IEMOCAP_loaders(data, batch_size, validRatio):
+def get_IEMOCAP_loaders(data, batch_size, validRatio, bios=False):
     # Create dataset for training
-    dataset, test_set = getIEMOCAP(data)
+    dataset, test_set = getIEMOCAP(data, bios)
     train_set, val_set = splitDataset(dataset, validRatio)
 
     tr_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, collate_fn=dataset.collate_fn)
-    val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False, collate_fn=dataset.collate_fn)
-    test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False, collate_fn=dataset.collate_fn)
+    val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, collate_fn=dataset.collate_fn)
+    test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=True, collate_fn=dataset.collate_fn)
     design_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=dataset.collate_fn)
+
 
     return tr_loader, val_loader, test_loader,design_loader
 
-def getIEMOCAP(data):
+def getIEMOCAP(data, bios=False):
     # Create dataset for training
-    dataset = dl.IEMOCAPDataset(data, train=True)
-    testset = dl.IEMOCAPDataset(data, train=False)
+    if bios == False:
+        dataset = dl.IEMOCAPDataset(data, train=True)
+        testset = dl.IEMOCAPDataset(data, train=False)
+    # Create dataset for training with biosERC
+    else:
+        dataset = dl.IEMOCAPDataset(data, speaker_bios_path="src/biosERC/speaker_bios.pt", train=True)
+        testset = dl.IEMOCAPDataset(data, speaker_bios_path="src/biosERC/speaker_bios.pt", train=False)
+
 
     return dataset, testset
+
+def count_labels(counter_tr, counter_ts, design_loader, test_loader):
+    def extract_labels(loader):
+        labels_all = []
+        for batch in loader:
+            _, _, _, _, labels, _, _ = batch
+            # Se labels è una lista di tensori, concateniamo
+            if isinstance(labels, (list, tuple)):
+                labels_flat = torch.cat(labels, dim=0).view(-1)
+            else:
+                labels_flat = labels.view(-1)
+            labels_all.extend(labels_flat.tolist())
+        return labels_all
+
+    # Estrazione delle etichette
+    train_labels = extract_labels(design_loader)
+    test_labels = extract_labels(test_loader)
+
+    # Aggiornamento dei counter
+    counter_tr.update(train_labels)
+    counter_ts.update(test_labels)
+
+    print("\n📊 Label distribution in TRAINING set:")
+    for label, count in sorted(counter_tr.items()):
+        print(f"Label {label}: {count}")
+
+    print("\n📊 Label distribution in TEST set:")
+    for label, count in sorted(counter_ts.items()):
+        print(f"Label {label}: {count}")
+
 
 def lossWeights(data):
     dataset, _ = getIEMOCAP(data)

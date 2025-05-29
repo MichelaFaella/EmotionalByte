@@ -4,7 +4,7 @@ import torch
 
 
 def save_hyperparams(dirpath, run_name, **kwargs):
-    csv_dir = dirpath + run_name
+    csv_dir = os.path.join(dirpath, run_name)
     hyperparams_path = os.path.join(csv_dir, "hyperparams.csv")
     os.makedirs(csv_dir, exist_ok=True)
     write_header = not os.path.exists(hyperparams_path)
@@ -21,6 +21,7 @@ def save_hyperparams(dirpath, run_name, **kwargs):
     gamma_2 = kwargs.get("Gamma2", 0.1)
     gamma_3 = kwargs.get("Gamma3", 0.1)
     modality = kwargs.get("Modality", "multi")
+    bios = kwargs.get("Bios", False)
 
 
     with open(hyperparams_path, mode='a', newline='') as csvfile:
@@ -28,16 +29,16 @@ def save_hyperparams(dirpath, run_name, **kwargs):
         if write_header:
             writer_hp.writerow([
                 "run_name", "model_dim", "dropout", "lr", "weight_decay", "batch_size",
-                "n_head", "n_epochs", "temp", "gamma_1", "gamma_2", "gamma_3", "modality"
+                "n_head", "n_epochs", "temp", "gamma_1", "gamma_2", "gamma_3", "modality", "bios"
             ])
         writer_hp.writerow([
             run_name, model_dimension, dropout, lr, weight_decay, batch_size,
-            n_head, n_epochs, temp, gamma_1, gamma_2, gamma_3, modality
+            n_head, n_epochs, temp, gamma_1, gamma_2, gamma_3, modality, bios
         ])
 
 
 def save_results(dirpath, run_name, epoch, losses, train_loss, train_acc, train_fscore, eval_loss, eval_acc, eval_fscore):
-    csv_dir = dirpath + run_name
+    csv_dir = os.path.join(dirpath, run_name)
     os.makedirs(csv_dir, exist_ok=True)
     csv_path = os.path.join(csv_dir, f"{run_name}_log.csv")
 
@@ -74,9 +75,57 @@ def save_results(dirpath, run_name, epoch, losses, train_loss, train_acc, train_
             get_loss_value("loss")
         ])
 
-def read_from_csv(dirpath, run_name):
-    log_path = os.path.join(dirpath, run_name, f"{run_name}_log.csv")
+def save_preds_labels(dirpath, run_name, y_train_true, y_train_pred, y_test_true, y_test_pred):
+    """
+    Save true and predicted labels for train and test sets.
+
+    Args:
+        dirpath (str): Directory path where results will be saved.
+        run_name (str): Name of the current run (used to name folders/files).
+        epoch (int): Epoch number (0-based).
+        y_train_true (list or tensor): True labels for training data.
+        y_train_pred (list or tensor): Predicted labels for training data.
+        y_test_true (list or tensor): True labels for test data.
+        y_test_pred (list or tensor): Predicted labels for test data.
+    """
+    csv_dir = os.path.join(dirpath, run_name)
+    os.makedirs(csv_dir, exist_ok=True)
+    csv_path = os.path.join(csv_dir, f"{run_name}label_pred.csv")
+
+    with open(csv_path, mode='w', newline='') as csv_file:
+        writer = csv.writer(csv_file)
+        # Write header
+        writer.writerow(["split", "true_label", "predicted_label"])
+
+        # Write training data
+        for true, pred in zip(y_train_true, y_train_pred):
+            writer.writerow(["train", int(true), int(pred)])
+
+        # Write test data
+        for true, pred in zip(y_test_true, y_test_pred):
+            writer.writerow(["test", int(true), int(pred)])
+
+
+def load_hyperparams(dirpath, run_name):
     hyperparams_path = os.path.join(dirpath, run_name, "hyperparams.csv")
+    selected_keys = [
+        "dropout", "lr", "weight_decay", "model_dimension", "batch_size", "modality"
+    ]
+
+    hyperparams = None
+    if os.path.exists(hyperparams_path):
+        with open(hyperparams_path, mode='r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                if row['run_name'] == run_name:
+                    hyperparams = {k: row[k] for k in selected_keys if k in row}
+                    break
+    return hyperparams
+
+def load_results(dirpath, run_name):
+
+    log_path = os.path.join(dirpath, run_name, f"{run_name}_log.csv")
+
 
     logs_train = {
         'loss_task': [],
@@ -113,19 +162,24 @@ def read_from_csv(dirpath, run_name):
             logs_eval['fscore'].append(float(row['eval_fscore']))
             logs_eval['loss'].append(float(row['eval_loss']))
 
-    # --- Caricamento hyperparams ---
-    selected_keys = [
-        "dropout", "lr", "weight_decay", "model_dimension", "batch_size", "modality"
-    ]
 
-    hyperparams = None
-    if os.path.exists(hyperparams_path):
-        with open(hyperparams_path, mode='r') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                if row['run_name'] == run_name:
-                    hyperparams = {k: row[k] for k in selected_keys if k in row}
-                    break
+    return logs_train, logs_eval, n_epochs
 
-    return logs_train, logs_eval, n_epochs, hyperparams
+def load_label_pred(dirpath, run_name):
+    pred_label_path = os.path.join(dirpath, run_name, f"{run_name}label_pred.csv")
+    labels_preds = {
+        'train': {'true': [], 'pred': []},
+        'test': {'true': [], 'pred': []}
+    }
 
+
+    with open(pred_label_path, mode='r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            split = row['split']
+            true_label = int(row['true_label'])
+            predicted_label = int(row['predicted_label'])
+            labels_preds[split]['true'].append(true_label)
+            labels_preds[split]['pred'].append(predicted_label)
+
+    return labels_preds
